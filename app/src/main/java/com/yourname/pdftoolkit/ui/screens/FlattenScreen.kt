@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.domain.operations.FlattenConfig
 import com.yourname.pdftoolkit.domain.operations.PdfFlattener
+import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -169,13 +170,9 @@ fun FlattenScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.tool_flatten_pdf)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                }
+            ToolTopBar(
+                title = stringResource(R.string.tool_flatten_pdf),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { paddingValues ->

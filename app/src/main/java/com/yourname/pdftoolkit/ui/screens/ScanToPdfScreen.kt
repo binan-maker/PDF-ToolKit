@@ -47,6 +47,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.yourname.pdftoolkit.domain.operations.*
+import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.CropHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -255,13 +256,9 @@ fun ScanToPdfScreen(
     } else {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.tool_scan_to_pdf)) },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                        }
-                    }
+                ToolTopBar(
+                    title = stringResource(R.string.tool_scan_to_pdf),
+                    onNavigateBack = onNavigateBack
                 )
             }
         ) { paddingValues ->

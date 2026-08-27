@@ -216,7 +216,29 @@ fun RotateScreen(
         topBar = {
             ToolTopBar(
                 title = stringResource(R.string.tool_rotate_pages),
-                onNavigateBack = onNavigateBack
+                subtitle = if (selectedFile == null) {
+                    "Turn every page the right way up"
+                } else {
+                    "$pageCount ${if (pageCount == 1) "page" else "pages"} ready to rotate"
+                },
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    if (selectedFile != null) {
+                        IconButton(
+                            onClick = {
+                                selectedFile = null
+                                selectedPages = emptySet()
+                                pageCount = 0
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.action_remove),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -232,71 +254,63 @@ fun RotateScreen(
                     .fillMaxWidth()
             ) {
                 if (selectedFile == null) {
-                    EmptyState(
-                        icon = Icons.Default.RotateRight,
-                        title = stringResource(R.string.metadata_no_pdf_selected),
-                        subtitle = stringResource(R.string.rotate_no_pdf_subtitle),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        PdfToolHeroCard(
+                            kicker = "TURN THE PAGE",
+                            title = "A better angle.",
+                            description = "Rotate a whole document or fine-tune only the pages that need it.",
+                            leadingIcon = Icons.Default.PictureAsPdf,
+                            secondaryIcon = Icons.Default.RotateRight
+                        )
+                        PdfToolEmptyDropZone(
+                            title = "Choose a PDF to rotate",
+                            subtitle = stringResource(R.string.rotate_no_pdf_subtitle),
+                            icon = Icons.Default.FolderOpen,
+                            onClick = {
+                                pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
+                            }
+                        )
+                        PdfToolPrivacyNote()
+                    }
                 } else {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
-                        // Selected file info
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PictureAsPdf,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = selectedFile!!.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        text = "$pageCount pages",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    selectedFile = null
-                                    selectedPages = emptySet()
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = stringResource(R.string.action_remove),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                            }
-                        }
+                        PdfToolHeroCard(
+                            kicker = "TURN THE PAGE",
+                            title = "A better angle.",
+                            description = "Pick an angle, then choose the pages to update.",
+                            leadingIcon = Icons.Default.PictureAsPdf,
+                            secondaryIcon = Icons.Default.RotateRight,
+                            status = "$pageCount pages."
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Rotation angle selection
-                        Text(
-                            text = "Rotation Angle",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        // Selected file info
+                        FileItemCard(
+                            fileName = selectedFile!!.name,
+                            fileSize = "$pageCount pages",
+                            onRemove = {
+                                selectedFile = null
+                                selectedPages = emptySet()
+                                pageCount = 0
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        PdfToolSectionLabel(
+                            step = "01",
+                            title = "Set the rotation",
+                            subtitle = "Choose an angle, then apply it to every page or just a few."
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -436,42 +450,27 @@ fun RotateScreen(
                 // Progress overlay
                 // Progress overlay
                 if (isProcessing) {
-                    androidx.compose.animation.AnimatedVisibility(
+                    PdfToolProgressOverlay(
                         visible = true,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                OperationProgress(
-                                    progress = progress,
-                                    message = "Rotating pages..."
-                                )
-                            }
-                        }
-                    }
+                        progress = progress,
+                        message = "Rotating pages...",
+                        icon = Icons.Default.RotateRight
+                    )
                 }
             }
 
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 3.dp
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+                shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (selectedFile == null) {
                         ActionButton(
@@ -483,6 +482,10 @@ fun RotateScreen(
                         )
                     } else {
                         val pageText = if (rotateAllPages) "all pages" else "${selectedPages.size} pages"
+                        SaveLocationSelector(
+                            useCustomLocation = useCustomLocation,
+                            onUseCustomLocationChange = { useCustomLocation = it }
+                        )
                         ActionButton(
                             text = "Rotate $pageText",
                             onClick = {

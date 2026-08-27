@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.data.HistoryManager
 import com.yourname.pdftoolkit.data.OperationType
 import com.yourname.pdftoolkit.domain.operations.*
+import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -244,13 +245,9 @@ fun WatermarkScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.tool_add_watermark)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                }
+            ToolTopBar(
+                title = stringResource(R.string.tool_add_watermark),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { paddingValues ->

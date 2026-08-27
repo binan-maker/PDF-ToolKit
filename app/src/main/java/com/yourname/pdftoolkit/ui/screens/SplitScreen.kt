@@ -300,33 +300,14 @@ fun SplitScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(
-                            text = stringResource(R.string.tool_split_pdf),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (selectedFile == null) {
-                                "Turn one document into exactly what you need"
-                            } else {
-                                "$pageCount pages ready to shape"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            ToolTopBar(
+                title = stringResource(R.string.tool_split_pdf),
+                subtitle = if (selectedFile == null) {
+                    "Turn one document into exactly what you need"
+                } else {
+                    "$pageCount pages ready to shape"
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
-                        )
-                    }
-                },
+                onNavigateBack = onNavigateBack,
                 actions = {
                     if (selectedFile != null) {
                         IconButton(
@@ -344,8 +325,7 @@ fun SplitScreen(
                             )
                         }
                     }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                }
             )
         },
         containerColor = MaterialTheme.colorScheme.background

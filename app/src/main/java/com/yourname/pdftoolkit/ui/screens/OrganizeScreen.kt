@@ -198,7 +198,29 @@ fun OrganizeScreen(
         topBar = {
             ToolTopBar(
                 title = stringResource(R.string.tool_organize_pages),
-                onNavigateBack = onNavigateBack
+                subtitle = if (selectedFile == null) {
+                    "Remove pages or make a focused extract"
+                } else {
+                    "$pageCount ${if (pageCount == 1) "page" else "pages"} ready to shape"
+                },
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    if (selectedFile != null) {
+                        IconButton(
+                            onClick = {
+                                selectedFile = null
+                                selectedPages = emptySet()
+                                pageCount = 0
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.action_remove),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -214,18 +236,46 @@ fun OrganizeScreen(
                     .fillMaxWidth()
             ) {
                 if (selectedFile == null) {
-                    EmptyState(
-                        icon = Icons.Default.SwapVert,
-                        title = stringResource(R.string.metadata_no_pdf_selected),
-                        subtitle = stringResource(R.string.organize_no_pdf_subtitle),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        PdfToolHeroCard(
+                            kicker = "SHAPE YOUR STORY",
+                            title = "Keep what matters.",
+                            description = "Remove pages you do not need or extract a focused new document.",
+                            leadingIcon = Icons.Default.PictureAsPdf,
+                            secondaryIcon = Icons.Default.SwapVert
+                        )
+                        PdfToolEmptyDropZone(
+                            title = "Choose a PDF to organize",
+                            subtitle = stringResource(R.string.organize_no_pdf_subtitle),
+                            icon = Icons.Default.FolderOpen,
+                            onClick = {
+                                pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
+                            }
+                        )
+                        PdfToolPrivacyNote()
+                    }
                 } else {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
+                        PdfToolHeroCard(
+                            kicker = "SHAPE YOUR STORY",
+                            title = "Keep what matters.",
+                            description = "Select pages below, then remove them or save them as a new PDF.",
+                            leadingIcon = Icons.Default.PictureAsPdf,
+                            secondaryIcon = if (isRemoveMode) Icons.Default.Delete else Icons.Default.ContentCopy,
+                            status = "$pageCount pages."
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         // Selected file info
                         FileItemCard(
                             fileName = selectedFile!!.name,
@@ -238,6 +288,14 @@ fun OrganizeScreen(
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        PdfToolSectionLabel(
+                            step = "01",
+                            title = "Choose an outcome",
+                            subtitle = "Delete pages from the original, or extract only the pages you select."
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         // Mode toggle
                         Row(
@@ -262,7 +320,7 @@ fun OrganizeScreen(
                                     isRemoveMode = false
                                     selectedPages = setOf()
                                 },
-                                label = { Text(stringResource(R.string.organize_reorder_pages)) },
+                                label = { Text("Extract pages") },
                                 leadingIcon = if (!isRemoveMode) {
                                     { Icon(Icons.Default.ContentCopy, null, Modifier.size(18.dp)) }
                                 } else null,
@@ -330,38 +388,28 @@ fun OrganizeScreen(
                 }
 
                 // Progress overlay
-                // Progress overlay
                 if (isProcessing) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp)
-                            .align(Alignment.Center)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            OperationProgress(
-                                progress = progress,
-                                message = if (isRemoveMode) "Removing pages..." else "Extracting pages..."
-                            )
-                        }
-                    }
+                    PdfToolProgressOverlay(
+                        visible = true,
+                        progress = progress,
+                        message = if (isRemoveMode) "Removing pages..." else "Extracting pages...",
+                        icon = if (isRemoveMode) Icons.Default.Delete else Icons.Default.ContentCopy
+                    )
                 }
             }
 
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 3.dp
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+                shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (selectedFile == null) {
                         ActionButton(

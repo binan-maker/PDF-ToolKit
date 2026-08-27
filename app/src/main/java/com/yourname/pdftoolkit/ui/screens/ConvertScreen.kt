@@ -15,12 +15,15 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -31,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yourname.pdftoolkit.data.FileManager
 import com.yourname.pdftoolkit.data.HistoryManager
 import com.yourname.pdftoolkit.data.SafUriManager
@@ -252,7 +256,29 @@ fun ConvertScreen(
         topBar = {
             ToolTopBar(
                 title = stringResource(R.string.convert_title),
-                onNavigateBack = onNavigateBack
+                subtitle = if (selectedImages.isEmpty()) {
+                    "Turn your favorite images into one polished PDF"
+                } else {
+                    "${selectedImages.size} ${if (selectedImages.size == 1) "image" else "images"} ready to arrange"
+                },
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    if (selectedImages.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                selectedImages = emptyList()
+                                selectedItemIndex = null
+                                useCustomLocation = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.action_clear_all),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -267,23 +293,32 @@ fun ConvertScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                if (selectedImages.isEmpty()) {
-                    EmptyState(
-                        icon = Icons.Default.Image,
-                        title = stringResource(R.string.convert_no_images_title),
-                        subtitle = stringResource(R.string.convert_no_images_subtitle),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
-                    ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 24.dp)
+                ) {
+                    item(span = { GridItemSpan(3) }) {
+                        ConvertHeroCard(
+                            hasImages = selectedImages.isNotEmpty(),
+                            imageCount = selectedImages.size
+                        )
+                    }
+
+                    if (selectedImages.isEmpty()) {
+                        item(span = { GridItemSpan(3) }) {
+                            ConvertEmptyDropZone(
+                                onSelectImages = {
+                                    pickImagesLauncher.safeLaunch(arrayOf("image/*"), context)
+                                }
+                            )
+                        }
+                        item(span = { GridItemSpan(3) }) {
+                            ConvertPrivacyNote()
+                        }
+                    } else {
                         // Image list header
                         item(span = { GridItemSpan(3) }) {
                             Row(
@@ -293,14 +328,13 @@ fun ConvertScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "Selected Images (${selectedImages.size})",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = "Selected images",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
                                     )
                                     if (hasOrderChanged) {
                                         Text(
-                                            text = "Order modified",
+                                            text = "Order modified • reset anytime",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -318,14 +352,12 @@ fun ConvertScreen(
                                             Text(stringResource(R.string.action_reset))
                                         }
                                     }
-                                    TextButton(
-                                        onClick = {
-                                            selectedImages = emptyList()
-                                            selectedItemIndex = null
-                                        }
-                                    ) {
-                                        Text(stringResource(R.string.action_clear_all))
-                                    }
+                                    Text(
+                                        text = "${selectedImages.size} ${if (selectedImages.size == 1) "image" else "images"}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
@@ -410,7 +442,15 @@ fun ConvertScreen(
                                 onClick = {
                                     pickImagesLauncher.safeLaunch(arrayOf("image/*"), context)
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                border = BorderStroke(
+                                    1.5.dp,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                ),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -420,12 +460,10 @@ fun ConvertScreen(
 
                         // Settings section
                         item(span = { GridItemSpan(3) }) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Settings",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ConvertSectionLabel(
+                                step = "02",
+                                title = "Make it yours",
+                                subtitle = "Choose the page shape and image quality before export."
                             )
                         }
 
@@ -433,8 +471,13 @@ fun ConvertScreen(
                         item(span = { GridItemSpan(3) }) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
                                 )
                             ) {
                                 Column(
@@ -470,8 +513,13 @@ fun ConvertScreen(
                         item(span = { GridItemSpan(3) }) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
                                 )
                             ) {
                                 Column(
@@ -532,23 +580,44 @@ fun ConvertScreen(
                         visible = true,
                         enter = fadeIn(),
                         exit = fadeOut(),
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        Card(
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp)
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.38f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Column(
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .padding(28.dp),
+                                shape = RoundedCornerShape(28.dp)
                             ) {
-                                OperationProgress(
-                                    progress = progress,
-                                    message = "Converting images..."
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Surface(
+                                        modifier = Modifier.size(56.dp),
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PictureAsPdf,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(15.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    OperationProgress(
+                                        progress = progress,
+                                        message = "Creating your PDF..."
+                                    )
+                                }
                             }
                         }
                     }
@@ -558,16 +627,19 @@ fun ConvertScreen(
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 3.dp
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+                shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (selectedImages.isEmpty()) {
                         ActionButton(
-                            text = "Select Images",
+                            text = "Choose images",
                             onClick = {
                                 pickImagesLauncher.safeLaunch(arrayOf("image/*"), context)
                             },
@@ -580,10 +652,8 @@ fun ConvertScreen(
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
                         ActionButton(
-                            text = "Convert to PDF",
+                            text = "Create PDF",
                             onClick = {
                                 if (useCustomLocation) {
                                     val fileName = FileManager.generateOutputFileName("images")
@@ -619,7 +689,238 @@ fun ConvertScreen(
     }
 }
 
+@Composable
+private fun ConvertHeroCard(hasImages: Boolean, imageCount: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary
+                        )
+                    )
+                )
+                .padding(22.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 42.dp, y = (-62).dp)
+                    .size(176.dp)
+                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(100))
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 42.dp, y = 68.dp)
+                    .size(118.dp)
+                    .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(100))
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Text(
+                        text = "MOMENTS, TOGETHER",
+                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.4.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.78f)
+                    )
+                    Text(
+                        text = "One story.\nOne PDF.",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 32.sp,
+                        color = Color.White
+                    )
+                    Text(
+                        text = if (hasImages) {
+                            "$imageCount ${if (imageCount == 1) "image" else "images"} selected. Arrange them, then make it shareable."
+                        } else {
+                            "Bring your images together in a clean, easy-to-share document."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.78f)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                        .size(92.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .size(58.dp)
+                            .offset(x = 10.dp, y = (-10).dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White.copy(alpha = 0.18f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .size(58.dp)
+                            .offset(x = (-10).dp, y = 12.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White.copy(alpha = 0.28f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PictureAsPdf,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConvertEmptyDropZone(onSelectImages: () -> Unit) {
+    Surface(
+        onClick = onSelectImages,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+        ),
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(58.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Collections,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.convert_no_images_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = stringResource(R.string.convert_no_images_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = RoundedCornerShape(13.dp),
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = "Choose images",
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConvertPrivacyNote() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Everything happens on-device. Your images stay private.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConvertSectionLabel(step: String, title: String, subtitle: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Surface(
+            modifier = Modifier.size(34.dp),
+            shape = RoundedCornerShape(11.dp),
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = step,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(11.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -642,23 +943,24 @@ private fun ImagePreviewCard(
     Card(
         onClick = onSelect,
         modifier = Modifier
-            .aspectRatio(1f)
-            .then(
-                if (isSelected) {
-                    Modifier.border(
-                        width = 3.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                } else Modifier
-            ),
+            .aspectRatio(1f),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.surface
             }
-        )
+        ),
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
@@ -666,7 +968,7 @@ private fun ImagePreviewCard(
                 contentDescription = image.name,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp)),
+                    .clip(RoundedCornerShape(20.dp)),
                 contentScale = ContentScale.Crop
             )
 

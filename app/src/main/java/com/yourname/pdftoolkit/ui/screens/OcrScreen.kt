@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yourname.pdftoolkit.domain.operations.PdfOcrProcessor
+import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -229,13 +230,9 @@ fun OcrScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.ocr_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                }
+            ToolTopBar(
+                title = stringResource(R.string.ocr_title),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { paddingValues ->

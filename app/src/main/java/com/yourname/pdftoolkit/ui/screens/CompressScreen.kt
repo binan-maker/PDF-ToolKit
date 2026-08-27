@@ -341,33 +341,14 @@ fun CompressScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(
-                            text = stringResource(R.string.tool_compress_pdf),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (selectedFile == null) {
-                                "Make room without losing the good parts"
-                            } else {
-                                "Tune the balance, then make it lighter"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            ToolTopBar(
+                title = stringResource(R.string.tool_compress_pdf),
+                subtitle = if (selectedFile == null) {
+                    "Make room without losing the good parts"
+                } else {
+                    "Tune the balance, then make it lighter"
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
-                        )
-                    }
-                },
+                onNavigateBack = onNavigateBack,
                 actions = {
                     if (selectedFile != null) {
                         IconButton(
@@ -383,8 +364,7 @@ fun CompressScreen(
                             )
                         }
                     }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                }
             )
         },
         containerColor = MaterialTheme.colorScheme.background

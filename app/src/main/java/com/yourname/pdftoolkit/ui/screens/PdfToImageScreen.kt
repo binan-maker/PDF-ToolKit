@@ -195,33 +195,14 @@ fun PdfToImageScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(
-                            text = stringResource(R.string.tool_pdf_to_images),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (selectedFile == null) {
-                                "Turn every page into something you can share"
-                            } else {
-                                "Choose the look before you export"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            ToolTopBar(
+                title = stringResource(R.string.tool_pdf_to_images),
+                subtitle = if (selectedFile == null) {
+                    "Turn every page into something you can share"
+                } else {
+                    "Choose the look before you export"
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
-                        )
-                    }
-                },
+                onNavigateBack = onNavigateBack,
                 actions = {
                     if (selectedFile != null) {
                         IconButton(onClick = { selectedFile = null }) {
@@ -232,8 +213,7 @@ fun PdfToImageScreen(
                             )
                         }
                     }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                }
             )
         },
         containerColor = MaterialTheme.colorScheme.background

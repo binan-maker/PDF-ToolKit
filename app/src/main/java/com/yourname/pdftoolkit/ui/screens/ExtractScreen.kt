@@ -194,7 +194,29 @@ fun ExtractScreen(
         topBar = {
             ToolTopBar(
                 title = "Extract Pages",
-                onNavigateBack = onNavigateBack
+                subtitle = if (selectedFile == null) {
+                    "Save the pages you need as a new PDF"
+                } else {
+                    "$pageCount ${if (pageCount == 1) "page" else "pages"} ready to choose from"
+                },
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    if (selectedFile != null) {
+                        IconButton(
+                            onClick = {
+                                selectedFile = null
+                                selectedPages = emptySet()
+                                pageCount = 0
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove selected PDF",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -210,64 +232,66 @@ fun ExtractScreen(
                     .fillMaxWidth()
             ) {
                 if (selectedFile == null) {
-                    EmptyState(
-                        icon = Icons.Default.ContentCopy,
-                        title = "No PDF Selected",
-                        subtitle = "Select a PDF file to extract specific pages",
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        PdfToolHeroCard(
+                            kicker = "MAKE A FOCUSED COPY",
+                            title = "Keep the good parts.",
+                            description = "Choose the pages you need and save them as a clean, shareable PDF.",
+                            leadingIcon = Icons.Default.PictureAsPdf,
+                            secondaryIcon = Icons.Default.ContentCopy
+                        )
+                        PdfToolEmptyDropZone(
+                            title = "Choose a PDF to extract from",
+                            subtitle = "Select the pages you want to keep",
+                            icon = Icons.Default.FolderOpen,
+                            onClick = {
+                                pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
+                            }
+                        )
+                        PdfToolPrivacyNote()
+                    }
                 } else {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
-                        // Selected file info
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PictureAsPdf,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = selectedFile!!.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        text = "$pageCount pages • ${selectedFile!!.formattedSize}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    selectedFile = null
-                                    selectedPages = emptySet()
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                            }
-                        }
+                        PdfToolHeroCard(
+                            kicker = "MAKE A FOCUSED COPY",
+                            title = "Keep the good parts.",
+                            description = "Select the pages you want to keep, then create a new PDF.",
+                            leadingIcon = Icons.Default.PictureAsPdf,
+                            secondaryIcon = Icons.Default.ContentCopy,
+                            status = "$pageCount pages."
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // Selected file info
+                        FileItemCard(
+                            fileName = selectedFile!!.name,
+                            fileSize = "$pageCount pages • ${selectedFile!!.formattedSize}",
+                            onRemove = {
+                                selectedFile = null
+                                selectedPages = emptySet()
+                                pageCount = 0
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        PdfToolSectionLabel(
+                            step = "01",
+                            title = "Choose your pages",
+                            subtitle = "Tap any page to include it in the new PDF."
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Selection controls
                         Row(
@@ -313,52 +337,32 @@ fun ExtractScreen(
                             columns = 4,
                             modifier = Modifier.fillMaxWidth().weight(1f)
                         )
-                        // Save location option
-                        SaveLocationSelector(
-                            useCustomLocation = useCustomLocation,
-                            onUseCustomLocationChange = { useCustomLocation = it }
-                        )
                     }
                 }
 
                 // Progress overlay
                 if (isProcessing) {
-                    androidx.compose.animation.AnimatedVisibility(
+                    PdfToolProgressOverlay(
                         visible = true,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                OperationProgress(
-                                    progress = progress,
-                                    message = "Extracting pages..."
-                                )
-                            }
-                        }
-                    }
+                        progress = progress,
+                        message = "Extracting pages...",
+                        icon = Icons.Default.ContentCopy
+                    )
                 }
             }
 
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 3.dp
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp,
+                shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (selectedFile == null) {
                         ActionButton(
@@ -369,6 +373,10 @@ fun ExtractScreen(
                             icon = Icons.Default.FolderOpen,
                         )
                     } else {
+                        SaveLocationSelector(
+                            useCustomLocation = useCustomLocation,
+                            onUseCustomLocationChange = { useCustomLocation = it }
+                        )
                         ActionButton(
                             text = "Extract ${selectedPages.size} Pages",
                             onClick = {

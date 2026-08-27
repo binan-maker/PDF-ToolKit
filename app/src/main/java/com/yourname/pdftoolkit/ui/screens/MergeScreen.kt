@@ -175,33 +175,14 @@ fun MergeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(
-                            text = stringResource(R.string.merge_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (selectedFiles.isEmpty()) {
-                                "Build one polished PDF"
-                            } else {
-                                "${selectedFiles.size} ${if (selectedFiles.size == 1) "file" else "files"} in your queue"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            ToolTopBar(
+                title = stringResource(R.string.merge_title),
+                subtitle = if (selectedFiles.isEmpty()) {
+                    "Build one polished PDF"
+                } else {
+                    "${selectedFiles.size} ${if (selectedFiles.size == 1) "file" else "files"} in your queue"
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
-                        )
-                    }
-                },
+                onNavigateBack = onNavigateBack,
                 actions = {
                     if (selectedFiles.isNotEmpty()) {
                         IconButton(
@@ -217,8 +198,7 @@ fun MergeScreen(
                             )
                         }
                     }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
