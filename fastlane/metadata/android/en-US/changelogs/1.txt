@@ -1,4 +1,4 @@
-Initial release of PDF Toolkit for F-Droid
+Initial release of Paperly for F-Droid
 
 Features:
 • Complete PDF manipulation suite (merge, split, compress, convert)

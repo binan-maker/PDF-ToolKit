@@ -1,4 +1,4 @@
-# PDF Toolkit — Localization Fix Plan
+# Paperly — Localization Fix Plan
 
 Source of truth: `docs/localization/audit-2026-08.md`.
 
@@ -53,25 +53,25 @@ Rules of engagement (from task):
 
 ## Phase 2 — Brand name protection (9 affected locales: ar, fr, id, ja, ko, ru, tk, tr, uz)
 
-Rule: "PDF Toolkit" must appear **verbatim** (unlocalized) in every locale; "Jetpack Compose" is a product name and should be preserved as-is.
+Rule: "Paperly" must appear **verbatim** (unlocalized) in every locale; "Jetpack Compose" is a product name and should be preserved as-is.
 
 ### 2.1 `settings_copyright` (footer)
 | [ ] | Locale | Current | Status |
 |---|---|---|---|
-| [ ] | ar | "© 2026 مجموعة أدوات PDF" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | fr | "© 2026 Boîte à outils PDF" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | id | "© 2026 Perangkat PDF" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | ja | "© 2026 PDF ツールキット" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | ko | "© 2026 PDF 툴킷" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | ru | "© 2026 PDF-инструментарий" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | tk | "© 2026 PDF gurallar toplumy" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | tr | "© 2026 PDF Araç Takımı" → "© 2026 PDF Toolkit" | DONE |
-| [ ] | uz | "© 2026 PDF asboblar to'plami" → "© 2026 PDF Toolkit" | DONE |
+| [ ] | ar | "© 2026 مجموعة أدوات PDF" → "© 2026 Paperly" | DONE |
+| [ ] | fr | "© 2026 Boîte à outils PDF" → "© 2026 Paperly" | DONE |
+| [ ] | id | "© 2026 Perangkat PDF" → "© 2026 Paperly" | DONE |
+| [ ] | ja | "© 2026 PDF ツールキット" → "© 2026 Paperly" | DONE |
+| [ ] | ko | "© 2026 PDF 툴킷" → "© 2026 Paperly" | DONE |
+| [ ] | ru | "© 2026 PDF-инструментарий" → "© 2026 Paperly" | DONE |
+| [ ] | tk | "© 2026 PDF gurallar toplumy" → "© 2026 Paperly" | DONE |
+| [ ] | tr | "© 2026 PDF Araç Takımı" → "© 2026 Paperly" | DONE |
+| [ ] | uz | "© 2026 PDF asboblar to'plami" → "© 2026 Paperly" | DONE |
 
 ### 2.2 `bug_report_subject` (8 locales)
 | [ ] | Locale | Current | Status |
 |---|---|---|---|
-| [ ] | ar | "[تقرير الأخطاء] مجموعة أدوات PDF" → "[Bug Report] PDF Toolkit" (brand verbatim) — **applied**: "[تقرير الأخطاء] PDF Toolkit" (translated prefix kept per rule 1) | DONE |
+| [ ] | ar | "[تقرير الأخطاء] مجموعة أدوات PDF" → "[Bug Report] Paperly" (brand verbatim) — **applied**: "[تقرير الأخطاء] Paperly" (translated prefix kept per rule 1) | DONE |
 | [ ] | fr | "[Rapport de bug] Boîte à outils PDF" → brand verbatim | DONE |
 | [ ] | id | "[Laporan Bug] Perangkat PDF" → brand verbatim | DONE |
 | [ ] | ja | "[バグレポート] PDF ツールキット" → brand verbatim | DONE |
@@ -83,20 +83,20 @@ Rule: "PDF Toolkit" must appear **verbatim** (unlocalized) in every locale; "Jet
 ### 2.3 `settings_about_title` (9 locales)
 | [ ] | Locale | Current | Status |
 |---|---|---|---|
-| [ ] | ar | "حول مجموعة أدوات PDF" → "حول PDF Toolkit" (brand verbatim) | DONE |
+| [ ] | ar | "حول مجموعة أدوات PDF" → "حول Paperly" (brand verbatim) | DONE |
 | [ ] | fr | "À propos de la boîte à outils PDF" → brand verbatim | DONE |
 | [ ] | id | "Tentang Perangkat PDF" → brand verbatim | DONE |
 | [ ] | ja | "PDF ツールキットについて" → brand verbatim | DONE |
 | [ ] | ko | "PDF 툴킷 정보" → brand verbatim | DONE |
-| [ ] | ru | "О наборе инструментов PDF" → "О PDF Toolkit" | DONE |
-| [ ] | tk | "PDF Toolkit hakda" → OK (brand kept) — verify | DONE |
+| [ ] | ru | "О наборе инструментов PDF" → "О Paperly" | DONE |
+| [ ] | tk | "Paperly hakda" → OK (brand kept) — verify | DONE |
 | [ ] | tr | "PDF Araç Seti Hakkında" → brand verbatim | DONE |
 | [ ] | uz | "PDF asboblar to'plami haqida" → brand verbatim | DONE |
 
 ### 2.4 `settings_about_description`
 | [ ] | Locale | Current | Status |
 |---|---|---|---|
-| [ ] | tr | "PDF Araç Takımı, PDF belgelerini…" → lead with "PDF Toolkit," (brand verbatim) | DONE |
+| [ ] | tr | "PDF Araç Takımı, PDF belgelerini…" → lead with "Paperly," (brand verbatim) | DONE |
 
 ### 2.5 `settings_about_kotlin_compose` (product name; 6 locales)
 | [ ] | Locale | Current | Status |
@@ -111,15 +111,15 @@ Rule: "PDF Toolkit" must appear **verbatim** (unlocalized) in every locale; "Jet
 ### 2.6 Cross-check (audit §C note)
 | [ ] | Item | Status |
 |---|---|---|
-| [ ] | Verify ru internal consistency: `bug_report_subject`/`settings_about_description` already keep "PDF Toolkit" — no change needed there, confirm during verification. | DONE |
+| [ ] | Verify ru internal consistency: `bug_report_subject`/`settings_about_description` already keep "Paperly" — no change needed there, confirm during verification. | DONE |
 
 ### 2.7 Rule-4 extras — brand translated in keys not listed in the audit table
 Found by the post-edit brand scan (grep across all locales). False positives excluded (`nav_tab_tools`/`category_image_tools`/`tool_image_tools`/`pdf_tools` = generic "tools"; tr `bug_report_template` "Yeniden Oluşturma" = "reproduce", not "Compose").
 | [ ] | Locale | Key | Current → Applied | Status |
 |---|---|---|---|---|
-| [ ] | ar | `feature_request_description` | "…تحسين مجموعة أدوات PDF!" → "…تحسين PDF Toolkit!" | DONE |
-| [ ] | tr | `feature_request_description` | "PDF Araç Setini geliştirmemize…" → "PDF Toolkit\'i geliştirmemize…" | DONE |
-| [ ] | uz | `feature_request_description` | "PDF asboblar to'plamini yaxshilashga…" → "PDF Toolkit\'ni yaxshilashga…" | DONE |
+| [ ] | ar | `feature_request_description` | "…تحسين مجموعة أدوات PDF!" → "…تحسين Paperly!" | DONE |
+| [ ] | tr | `feature_request_description` | "PDF Araç Setini geliştirmemize…" → "Paperly\'i geliştirmemize…" | DONE |
+| [ ] | uz | `feature_request_description` | "PDF asboblar to'plamini yaxshilashga…" → "Paperly\'ni yaxshilashga…" | DONE |
 
 ---
 

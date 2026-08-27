@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App Name -->
-    <string name="app_name">PDF Toolkit</string>
+    <string name="app_name">Paperly</string>
 
     <!-- Common Actions -->
     <string name="action_add">Добавить</string>
@@ -43,7 +43,7 @@
     <string name="cd_compression_quality">Качество сжатия</string>
 
     <!-- Home Screen -->
-    <string name="home_title">PDF Toolkit</string>
+    <string name="home_title">Paperly</string>
     <string name="home_subtitle">Мощные утилиты обработки PDF и инструментов для документов.</string>
     <string name="fab_open_pdf">Открыть PDF</string>
 
@@ -241,8 +241,8 @@
     <string name="settings_clear_cache">Очистить кэш?</string>
     <string name="settings_clear_cache_message">Это приведет к удалению временных файлов и кэшированных данных. Ваши сохраненные PDF-файлы не будут затронуты.</string>
     <string name="settings_cache_cleared">Кэш успешно очищен</string>
-    <string name="settings_about_title">О PDF Toolkit</string>
-    <string name="settings_about_description">PDF Toolkit — это мощный автономный инструмент PDF, который помогает быстро и эффективно управлять PDF-документами.</string>
+    <string name="settings_about_title">О Paperly</string>
+    <string name="settings_about_description">Paperly — это мощный автономный инструмент PDF, который помогает быстро и эффективно управлять PDF-документами.</string>
     <string name="settings_about_features">Функции:</string>
     <string name="settings_about_feature_1">Объединение, разделение, сжатие PDF-файлов</string>
     <string name="settings_about_feature_2">Преобразование в/из изображений</string>
@@ -253,9 +253,9 @@
     <string name="settings_about_build">Сборка</string>
     <string name="settings_about_made_with">Сделано с</string>
     <string name="settings_about_kotlin_compose">Kotlin &amp; Jetpack Compose</string>
-    <string name="settings_app_name">PDF Toolkit</string>
+    <string name="settings_app_name">Paperly</string>
     <string name="settings_made_with_love">Сделано с ❤️ для продуктивности</string>
-    <string name="settings_copyright">© 2026 PDF Toolkit</string>
+    <string name="settings_copyright">© 2026 Paperly</string>
     <string name="settings_select_language">Выберите язык</string>
     <string name="settings_language_changed">Язык изменен</string>
 
@@ -283,7 +283,7 @@
 
     <!-- Feature Request -->
     <string name="feature_request_title">Запросить функцию</string>
-    <string name="feature_request_description">Поделитесь своей идеей, чтобы помочь нам улучшить PDF Toolkit!</string>
+    <string name="feature_request_description">Поделитесь своей идеей, чтобы помочь нам улучшить Paperly!</string>
     <string name="feature_request_category">Категория</string>
     <string name="feature_request_category_feature">Особенность</string>
     <string name="feature_request_category_improvement">Улучшение</string>
@@ -293,7 +293,7 @@
     <string name="feature_request_placeholder">Какую функцию вы хотели бы видеть?</string>
 
     <!-- Bug Report -->
-    <string name="bug_report_subject">[Отчет об ошибке] PDF Toolkit</string>
+    <string name="bug_report_subject">[Отчет об ошибке] Paperly</string>
     <string name="bug_report_template">Описание ошибки:\n[Опишите проблему, с которой вы столкнулись]\n\nШаги по воспроизведению:\n1. \n2. \n3. \n\nОжидаемое поведение:\n[Чего вы ожидали?]\n\nФактическое поведение:\n[Что произошло на самом деле?]</string>
 
     <!-- Error Messages -->

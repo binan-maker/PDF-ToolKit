@@ -23,7 +23,7 @@ object ReviewHelper {
     fun showReview(activity: Activity) {
         try {
             val builder = AlertDialog.Builder(activity)
-            builder.setTitle("Enjoying PDF Toolkit?")
+            builder.setTitle("Enjoying Paperly?")
             builder.setMessage("If you like this app, please consider starring us on GitHub or sharing it with friends. Your support helps us keep it free and open source!")
 
             builder.setPositiveButton("Star on GitHub") { dialog, _ ->
@@ -61,8 +61,8 @@ object ReviewHelper {
         try {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_SUBJECT, "PDF Toolkit")
-                putExtra(Intent.EXTRA_TEXT, "Check out PDF Toolkit, a free and open source PDF tool: $GITHUB_URL")
+                putExtra(Intent.EXTRA_SUBJECT, "Paperly")
+                putExtra(Intent.EXTRA_TEXT, "Check out Paperly, a free and open source PDF tool: $GITHUB_URL")
             }
             activity.startActivity(Intent.createChooser(intent, "Share via"))
         } catch (e: Exception) {

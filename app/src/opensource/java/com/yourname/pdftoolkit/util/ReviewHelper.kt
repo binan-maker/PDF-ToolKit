@@ -24,7 +24,7 @@ object ReviewHelper {
     fun showReview(activity: Activity) {
         try {
             val builder = AlertDialog.Builder(activity)
-            builder.setTitle("Enjoying PDF Toolkit?")
+            builder.setTitle("Enjoying Paperly?")
             builder.setMessage("If you like this app, please consider starring us on GitHub or checking out the latest releases. Your support helps us keep it free and open source!")
 
             builder.setPositiveButton("Star on GitHub") { dialog, _ ->

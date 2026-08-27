@@ -1,10 +1,10 @@
 #!/bin/bash
-# Jules AI Environment Setup Script for PDF Toolkit
+# Jules AI Environment Setup Script for Paperly
 # Run this first in every Jules session
 
 set -e
 
-echo "🔧 Starting Jules environment setup for PDF Toolkit..."
+echo "🔧 Starting Jules environment setup for Paperly..."
 
 # Check if we're in the right directory
 if [ ! -f "settings.gradle.kts" ]; then
@@ -51,7 +51,7 @@ java -version 2>&1 | head -1
 ./gradlew --version | head -3
 echo "================================"
 echo ""
-echo "✅ Jules is ready for autonomous PDF Toolkit optimization!"
+echo "✅ Jules is ready for autonomous Paperly optimization!"
 echo ""
 echo "Next steps:"
 echo "  1. Check AI_RUN_LOG.md for recent work"

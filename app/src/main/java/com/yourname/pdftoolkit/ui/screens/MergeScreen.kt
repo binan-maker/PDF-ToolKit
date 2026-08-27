@@ -45,7 +45,7 @@ fun MergeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfMerger = remember { PdfMerger() }
-    
+
     // State
     var selectedFiles by remember { mutableStateOf<List<PdfFileInfo>>(emptyList()) }
     var isProcessing by remember { mutableStateOf(false) }
@@ -55,7 +55,7 @@ fun MergeScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher for multiple PDFs - with MIME type filter
     val pickPdfsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -71,7 +71,7 @@ fun MergeScreen(
             selectedFiles = selectedFiles + newFiles
         }
     }
-    
+
     // Custom save file launcher (optional)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -95,7 +95,7 @@ fun MergeScreen(
             )
         }
     }
-    
+
     // Function to merge with default location
     fun mergeWithDefaultLocation() {
         scope.launch {
@@ -103,12 +103,12 @@ fun MergeScreen(
             progress = 0f
             val fileCount = selectedFiles.size
             val firstFileName = selectedFiles.firstOrNull()?.name
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val fileName = FileManager.generateOutputFileName("merged")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val mergeResult = pdfMerger.mergePdfs(
                             context = context,
@@ -116,9 +116,9 @@ fun MergeScreen(
                             outputStream = outputResult.outputStream,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         mergeResult.fold(
                             onSuccess = {
                                 Triple(true, "Successfully merged $fileCount PDFs\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
@@ -135,11 +135,11 @@ fun MergeScreen(
                     Triple(false, e.message ?: "Merge failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
-            
+
             // Record in history
             if (resultSuccess && result.third != null) {
                 HistoryManager.recordSuccess(
@@ -158,13 +158,13 @@ fun MergeScreen(
                     errorMessage = result.second
                 )
             }
-            
+
             if (resultSuccess) selectedFiles = emptyList()
             isProcessing = false
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -199,7 +199,7 @@ fun MergeScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         item {
                             Text(
@@ -210,7 +210,7 @@ fun MergeScreen(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
-                        
+
                         itemsIndexed(
                             items = selectedFiles,
                             key = { index, file -> "${file.uri}-$index" }
@@ -242,10 +242,10 @@ fun MergeScreen(
                                 } else null
                             )
                         }
-                        
+
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             OutlinedButton(
                                 onClick = {
                                     pickPdfsLauncher.safeLaunch(arrayOf("application/pdf"), context)
@@ -257,7 +257,7 @@ fun MergeScreen(
                                 Text(stringResource(R.string.action_add_more_pdfs))
                             }
                         }
-                        
+
                         // Save location option
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
@@ -285,7 +285,7 @@ fun MergeScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -314,7 +314,7 @@ fun MergeScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -354,15 +354,15 @@ fun MergeScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) stringResource(R.string.merge_complete) else stringResource(R.string.merge_failed),
             message = resultMessage,
-            onDismiss = { 
-                showResult = false 
+            onDismiss = {
+                showResult = false
                 resultUri = null
             },
             onAction = resultUri?.let { uri ->
@@ -386,7 +386,7 @@ private fun performMerge(
     scope.launch {
         onProcessing(true)
         onProgress(0f)
-        
+
         val outputStream = context.contentResolver.openOutputStream(outputUri)
         if (outputStream != null) {
             val result = pdfMerger.mergePdfs(
@@ -395,9 +395,9 @@ private fun performMerge(
                 outputStream = outputStream,
                 onProgress = onProgress
             )
-            
+
             outputStream.close()
-            
+
             result.fold(
                 onSuccess = {
                     onResult(true, "Successfully merged ${selectedFiles.size} PDFs", outputUri)
@@ -409,7 +409,7 @@ private fun performMerge(
         } else {
             onResult(false, "Cannot create output file", null)
         }
-        
+
         onProcessing(false)
     }
 }
@@ -456,9 +456,9 @@ private fun FileItemCardWithOrder(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = fileName,
@@ -472,7 +472,7 @@ private fun FileItemCardWithOrder(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             // Reorder buttons
             Column {
                 IconButton(
@@ -498,7 +498,7 @@ private fun FileItemCardWithOrder(
                     )
                 }
             }
-            
+
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = Icons.Default.Close,

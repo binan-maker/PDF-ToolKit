@@ -53,43 +53,43 @@ import kotlinx.coroutines.launch
 class WatermarkViewModel : ViewModel() {
     private val _state = MutableStateFlow(WatermarkUiState())
     val state: StateFlow<WatermarkUiState> = _state.asStateFlow()
-    
+
     fun setSourcePdf(uri: Uri, name: String) {
         _state.value = _state.value.copy(sourceUri = uri, sourceName = name)
     }
-    
+
     fun setWatermarkImage(uri: Uri) {
         _state.value = _state.value.copy(watermarkImageUri = uri)
     }
-    
+
     fun updateWatermarkText(text: String) {
         _state.value = _state.value.copy(watermarkText = text)
     }
-    
+
     fun setWatermarkType(isText: Boolean) {
         _state.value = _state.value.copy(isTextWatermark = isText)
     }
-    
+
     fun setPosition(position: WatermarkPosition) {
         _state.value = _state.value.copy(position = position)
     }
-    
+
     fun setOpacity(opacity: Float) {
         _state.value = _state.value.copy(opacity = opacity)
     }
-    
+
     fun setFontSize(size: Float) {
         _state.value = _state.value.copy(fontSize = size)
     }
-    
+
     fun setRotation(rotation: Float) {
         _state.value = _state.value.copy(rotation = rotation)
     }
-    
+
     fun setColor(color: Color) {
         _state.value = _state.value.copy(color = color)
     }
-    
+
     fun addWatermark(
         context: android.content.Context,
         outputUri: Uri
@@ -97,12 +97,12 @@ class WatermarkViewModel : ViewModel() {
         val currentState = _state.value
         val sourceUri = currentState.sourceUri ?: return
         val sourceName = currentState.sourceName
-        
+
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0)
-            
+
             val watermarker = PdfWatermarker()
-            
+
             val watermarkType = if (currentState.isTextWatermark) {
                 WatermarkType.Text(
                     content = currentState.watermarkText,
@@ -119,14 +119,14 @@ class WatermarkViewModel : ViewModel() {
                     )
                 } ?: WatermarkType.Text(currentState.watermarkText)
             }
-            
+
             val config = WatermarkConfig(
                 type = watermarkType,
                 position = currentState.position,
                 opacity = currentState.opacity,
                 applyToAllPages = true
             )
-            
+
             val result = watermarker.addWatermark(
                 context = context,
                 inputUri = sourceUri,
@@ -136,7 +136,7 @@ class WatermarkViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             // Record in history
             if (result.success) {
                 HistoryManager.recordSuccess(
@@ -155,7 +155,7 @@ class WatermarkViewModel : ViewModel() {
                     errorMessage = result.errorMessage
                 )
             }
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result.success,
@@ -165,7 +165,7 @@ class WatermarkViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         _state.value = WatermarkUiState()
     }
@@ -204,7 +204,7 @@ fun WatermarkScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    
+
     // Auto-load initial file if provided
     LaunchedEffect(initialUri) {
         if (initialUri != null && state.sourceUri == null) {
@@ -216,7 +216,7 @@ fun WatermarkScreen(
             viewModel.setSourcePdf(initialUri, name)
         }
     }
-    
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -229,19 +229,19 @@ fun WatermarkScreen(
             viewModel.setSourcePdf(it, name)
         }
     }
-    
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { viewModel.setWatermarkImage(it) }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { viewModel.addWatermark(context, it) }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -260,7 +260,7 @@ fun WatermarkScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Source PDF Selection
             Card(
@@ -278,7 +278,7 @@ fun WatermarkScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     if (state.sourceUri != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -311,7 +311,7 @@ fun WatermarkScreen(
                     }
                 }
             }
-            
+
             // Watermark Type Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -328,7 +328,7 @@ fun WatermarkScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -352,7 +352,7 @@ fun WatermarkScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    
+
                     // Text Watermark Options
                     AnimatedVisibility(
                         visible = state.isTextWatermark,
@@ -367,7 +367,7 @@ fun WatermarkScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                            
+
                             Text(stringResource(R.string.watermark_font_size, state.fontSize.toInt()), style = MaterialTheme.typography.bodyMedium)
                             Slider(
                                 value = state.fontSize,
@@ -376,7 +376,7 @@ fun WatermarkScreen(
                             )
                         }
                     }
-                    
+
                     // Image Watermark Options
                     AnimatedVisibility(
                         visible = !state.isTextWatermark,
@@ -410,7 +410,7 @@ fun WatermarkScreen(
                     }
                 }
             }
-            
+
             // Position Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -427,7 +427,7 @@ fun WatermarkScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -441,7 +441,7 @@ fun WatermarkScreen(
                     }
                 }
             }
-            
+
             // Appearance Settings
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -458,14 +458,14 @@ fun WatermarkScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     Text(stringResource(R.string.watermark_opacity_val, (state.opacity * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
                     Slider(
                         value = state.opacity,
                         onValueChange = { viewModel.setOpacity(it) },
                         valueRange = 0.1f..1f
                     )
-                    
+
                     Text(stringResource(R.string.watermark_rotation_val, state.rotation.toInt()), style = MaterialTheme.typography.bodyMedium)
                     Slider(
                         value = state.rotation,
@@ -474,7 +474,7 @@ fun WatermarkScreen(
                     )
                 }
             }
-            
+
             // Processing State
             AnimatedVisibility(visible = state.isProcessing) {
                 Card(
@@ -497,7 +497,7 @@ fun WatermarkScreen(
                     }
                 }
             }
-            
+
             // Success State
             AnimatedVisibility(visible = state.isComplete && !state.isProcessing) {
                 Card(
@@ -539,7 +539,7 @@ fun WatermarkScreen(
                     }
                 }
             }
-            
+
             // Error State
             state.error?.let { error ->
                 Card(
@@ -562,9 +562,9 @@ fun WatermarkScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Add Watermark Button
             Button(
                 onClick = {
@@ -572,16 +572,16 @@ fun WatermarkScreen(
                     saveDocumentLauncher.safeLaunch(fileName, context)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = state.sourceUri != null && 
-                         (state.isTextWatermark && state.watermarkText.isNotBlank() || 
-                          !state.isTextWatermark && state.watermarkImageUri != null) &&
-                         !state.isProcessing
+                enabled = state.sourceUri != null &&
+                        (state.isTextWatermark && state.watermarkText.isNotBlank() ||
+                                !state.isTextWatermark && state.watermarkImageUri != null) &&
+                        !state.isProcessing
             ) {
                 Icon(Icons.Default.WaterDrop, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.tool_add_watermark))
             }
-            
+
             // Reset Button
             if (state.isComplete) {
                 OutlinedButton(

@@ -46,13 +46,13 @@ fun MetadataScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val metadataManager = remember { PdfMetadataManager() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var metadata by remember { mutableStateOf<PdfMetadata?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-    
+
     // Editable fields
     var editTitle by remember { mutableStateOf("") }
     var editAuthor by remember { mutableStateOf("") }
@@ -61,7 +61,7 @@ fun MetadataScreen(
     var editCreator by remember { mutableStateOf("") }
     var editProducer by remember { mutableStateOf("") }
     var showAdvanced by remember { mutableStateOf(false) }
-    
+
     var isProcessing by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
     var showResult by remember { mutableStateOf(false) }
@@ -69,7 +69,7 @@ fun MetadataScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -78,7 +78,7 @@ fun MetadataScreen(
             val fileInfo = FileManager.getFileInfo(context, uri)
             selectedFile = fileInfo
             isEditing = false
-            
+
             scope.launch {
                 isLoading = true
                 val result = metadataManager.readMetadata(context, uri)
@@ -100,7 +100,7 @@ fun MetadataScreen(
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -110,7 +110,7 @@ fun MetadataScreen(
                 scope.launch {
                     isProcessing = true
                     progress = 0f
-                    
+
                     val outputStream = context.contentResolver.openOutputStream(outputUri)
                     if (outputStream != null) {
                         val editedMetadata = EditableMetadata(
@@ -121,7 +121,7 @@ fun MetadataScreen(
                             creator = editCreator.trim(),
                             producer = editProducer.trim()
                         )
-                        
+
                         val result = metadataManager.updateMetadata(
                             context = context,
                             inputUri = file.uri,
@@ -129,9 +129,9 @@ fun MetadataScreen(
                             metadata = editedMetadata,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputStream.close()
-                        
+
                         result.fold(
                             onSuccess = {
                                 resultSuccess = true
@@ -148,26 +148,26 @@ fun MetadataScreen(
                         resultSuccess = false
                         resultMessage = context.getString(R.string.metadata_cannot_create_output)
                     }
-                    
+
                     isProcessing = false
                     showResult = true
                 }
             }
         }
     }
-    
+
     // Function to save with default location
     fun saveWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
                     val fileName = FileManager.generateOutputFileName("updated")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val editedMetadata = EditableMetadata(
                             title = editTitle.trim(),
@@ -177,7 +177,7 @@ fun MetadataScreen(
                             creator = editCreator.trim(),
                             producer = editProducer.trim()
                         )
-                        
+
                         val updateResult = metadataManager.updateMetadata(
                             context = context,
                             inputUri = file.uri,
@@ -185,9 +185,9 @@ fun MetadataScreen(
                             metadata = editedMetadata,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         updateResult.fold(
                             onSuccess = {
                                 Triple(true, context.getString(R.string.metadata_saved_to, context.getString(R.string.metadata_updated_success), "${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}"), outputResult.outputFile.contentUri)
@@ -204,7 +204,7 @@ fun MetadataScreen(
                     Triple(false, e.message ?: context.getString(R.string.metadata_update_failed), null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -215,19 +215,19 @@ fun MetadataScreen(
             showResult = true
         }
     }
-    
+
     // Function to strip all metadata
     fun stripMetadata() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
                     val fileName = FileManager.generateOutputFileName("stripped")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val stripResult = metadataManager.removeMetadata(
                             context = context,
@@ -235,9 +235,9 @@ fun MetadataScreen(
                             outputStream = outputResult.outputStream,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         stripResult.fold(
                             onSuccess = {
                                 Triple(true, context.getString(R.string.metadata_stripped_saved_to, "${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}"), outputResult.outputFile.contentUri)
@@ -254,7 +254,7 @@ fun MetadataScreen(
                     Triple(false, e.message ?: context.getString(R.string.metadata_stripping_failed), null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -262,7 +262,7 @@ fun MetadataScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -301,8 +301,8 @@ fun MetadataScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(vertical = 16.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             // Selected file info
                             item {
@@ -337,7 +337,7 @@ fun MetadataScreen(
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                             )
                                         }
-                                        IconButton(onClick = { 
+                                        IconButton(onClick = {
                                             selectedFile = null
                                             metadata = null
                                         }) {
@@ -350,7 +350,7 @@ fun MetadataScreen(
                                     }
                                 }
                             }
-                            
+
                             // Top Privacy Warning Banner (only when not editing)
                             if (!isEditing) {
                                 item {
@@ -400,7 +400,7 @@ fun MetadataScreen(
                                     }
                                 }
                             }
-                            
+
                             // Document Info section / Basic Metadata
                             item {
                                 Row(
@@ -414,7 +414,7 @@ fun MetadataScreen(
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    
+
                                     TextButton(
                                         onClick = { isEditing = !isEditing }
                                     ) {
@@ -428,7 +428,7 @@ fun MetadataScreen(
                                     }
                                 }
                             }
-                            
+
                             // Basic Metadata fields card
                             item {
                                 Card(
@@ -441,7 +441,7 @@ fun MetadataScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         if (isEditing) {
                                             OutlinedTextField(
@@ -451,7 +451,7 @@ fun MetadataScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 singleLine = true
                                             )
-                                            
+
                                             OutlinedTextField(
                                                 value = editAuthor,
                                                 onValueChange = { editAuthor = it },
@@ -459,7 +459,7 @@ fun MetadataScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 singleLine = true
                                             )
-                                            
+
                                             OutlinedTextField(
                                                 value = editSubject,
                                                 onValueChange = { editSubject = it },
@@ -467,7 +467,7 @@ fun MetadataScreen(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 singleLine = true
                                             )
-                                            
+
                                             OutlinedTextField(
                                                 value = editKeywords,
                                                 onValueChange = { editKeywords = it },
@@ -497,7 +497,7 @@ fun MetadataScreen(
                                     }
                                 }
                             }
-                            
+
                             // Collapsible Advanced Properties Card
                             item {
                                 Card(
@@ -537,7 +537,7 @@ fun MetadataScreen(
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        
+
                                         AnimatedVisibility(visible = showAdvanced) {
                                             Column(
                                                 modifier = Modifier
@@ -549,7 +549,7 @@ fun MetadataScreen(
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f),
                                                     modifier = Modifier.padding(bottom = 4.dp)
                                                 )
-                                                
+
                                                 if (isEditing) {
                                                     OutlinedTextField(
                                                         value = editCreator,
@@ -558,7 +558,7 @@ fun MetadataScreen(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         singleLine = true
                                                     )
-                                                    
+
                                                     OutlinedTextField(
                                                         value = editProducer,
                                                         onValueChange = { editProducer = it },
@@ -576,7 +576,7 @@ fun MetadataScreen(
                                                         value = metadata!!.producer ?: stringResource(R.string.metadata_unknown)
                                                     )
                                                 }
-                                                
+
                                                 MetadataRow(
                                                     label = stringResource(R.string.label_created),
                                                     value = metadata!!.creationDate ?: stringResource(R.string.metadata_unknown)
@@ -601,7 +601,7 @@ fun MetadataScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -630,7 +630,7 @@ fun MetadataScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -657,9 +657,9 @@ fun MetadataScreen(
                                 useCustomLocation = useCustomLocation,
                                 onUseCustomLocationChange = { useCustomLocation = it }
                             )
-                            
+
                             Spacer(modifier = Modifier.height(12.dp))
-                            
+
                             ActionButton(
                                 text = stringResource(R.string.action_save_changes),
                                 onClick = {
@@ -688,14 +688,14 @@ fun MetadataScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) stringResource(R.string.metadata_update_complete) else stringResource(R.string.metadata_update_failed),
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

@@ -41,7 +41,7 @@ fun UnlockScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val unlocker = remember { PdfUnlocker() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var password by remember { mutableStateOf("") }
@@ -54,7 +54,7 @@ fun UnlockScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -63,25 +63,25 @@ fun UnlockScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
             password = ""
             isEncrypted = null
-            
+
             // Check if file is encrypted
             scope.launch {
                 isEncrypted = unlocker.isEncrypted(context, uri)
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { saveUri ->
             val file = selectedFile ?: return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     val result = unlocker.unlockPdf(
                         context = context,
@@ -90,7 +90,7 @@ fun UnlockScreen(
                         password = password,
                         onProgress = { progress = it }
                     )
-                    
+
                     result.fold(
                         onSuccess = { unlockResult ->
                             resultSuccess = true
@@ -124,26 +124,26 @@ fun UnlockScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to unlock with default location
     fun unlockWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
                     val baseName = file.name.removeSuffix(".pdf")
                     val fileName = "${baseName}_unlocked.pdf"
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val unlockResult = unlocker.unlockPdf(
                             context = context,
@@ -152,9 +152,9 @@ fun UnlockScreen(
                             password = password,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         unlockResult.fold(
                             onSuccess = { result ->
                                 val message = buildString {
@@ -189,7 +189,7 @@ fun UnlockScreen(
                     Triple(false, e.message ?: "Failed to unlock PDF", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -201,7 +201,7 @@ fun UnlockScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -233,22 +233,22 @@ fun UnlockScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
                             FileItemCard(
                                 fileName = selectedFile!!.name,
                                 fileSize = selectedFile!!.formattedSize,
-                                onRemove = { 
+                                onRemove = {
                                     selectedFile = null
                                     password = ""
                                     isEncrypted = null
                                 }
                             )
                         }
-                        
+
                         // Encryption status
                         item {
                             Card(
@@ -296,7 +296,7 @@ fun UnlockScreen(
                                 }
                             }
                         }
-                        
+
                         // Password input (only show if encrypted)
                         if (isEncrypted == true) {
                             item {
@@ -307,7 +307,7 @@ fun UnlockScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
+
                             item {
                                 OutlinedTextField(
                                     value = password,
@@ -344,7 +344,7 @@ fun UnlockScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                            
+
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
@@ -375,7 +375,7 @@ fun UnlockScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -398,7 +398,7 @@ fun UnlockScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -423,9 +423,9 @@ fun UnlockScreen(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = "Unlock PDF",
                             onClick = {
@@ -445,14 +445,14 @@ fun UnlockScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "PDF Unlocked" else "Unlock Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

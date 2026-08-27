@@ -21,7 +21,7 @@ AuthorName: Chaitanya Naidu
 SourceCode: https://github.com/Karna14314/Pdf_Tools
 IssueTracker: https://github.com/Karna14314/Pdf_Tools/issues
 
-AutoName: PDF Toolkit
+AutoName: Paperly
 
 RepoType: git
 Repo: https://github.com/Karna14314/Pdf_Tools

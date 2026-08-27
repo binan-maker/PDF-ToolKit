@@ -40,7 +40,7 @@ fun RepairScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repairer = remember { PdfRepairer() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var isProcessing by remember { mutableStateOf(false) }
@@ -52,7 +52,7 @@ fun RepairScreen(
     var isDiagnosing by remember { mutableStateOf(false) }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -60,7 +60,7 @@ fun RepairScreen(
         uri?.let {
             selectedFile = FileManager.getFileInfo(context, uri)
             diagnostics = emptyList()
-            
+
             // Run diagnostics
             scope.launch {
                 isDiagnosing = true
@@ -69,18 +69,18 @@ fun RepairScreen(
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { saveUri ->
             val file = selectedFile ?: return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     val result = repairer.repairPdf(
                         context = context,
@@ -88,7 +88,7 @@ fun RepairScreen(
                         outputStream = outputStream,
                         onProgress = { progress = it }
                     )
-                    
+
                     result.fold(
                         onSuccess = { repairResult ->
                             resultSuccess = true
@@ -118,26 +118,26 @@ fun RepairScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to repair with default location
     fun repairWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
                     val baseName = file.name.removeSuffix(".pdf")
                     val fileName = "${baseName}_repaired.pdf"
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val repairResult = repairer.repairPdf(
                             context = context,
@@ -145,9 +145,9 @@ fun RepairScreen(
                             outputStream = outputResult.outputStream,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         repairResult.fold(
                             onSuccess = { result ->
                                 val message = buildString {
@@ -179,7 +179,7 @@ fun RepairScreen(
                     Triple(false, e.message ?: "Repair failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -190,7 +190,7 @@ fun RepairScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -222,21 +222,21 @@ fun RepairScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
                             FileItemCard(
                                 fileName = selectedFile!!.name,
                                 fileSize = selectedFile!!.formattedSize,
-                                onRemove = { 
+                                onRemove = {
                                     selectedFile = null
                                     diagnostics = emptyList()
                                 }
                             )
                         }
-                        
+
                         // Diagnostics section
                         item {
                             Text(
@@ -246,7 +246,7 @@ fun RepairScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         if (isDiagnosing) {
                             item {
                                 Card(
@@ -290,7 +290,7 @@ fun RepairScreen(
                                 }
                             }
                         }
-                        
+
                         // Info card
                         item {
                             Card(
@@ -321,7 +321,7 @@ fun RepairScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -344,7 +344,7 @@ fun RepairScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -369,9 +369,9 @@ fun RepairScreen(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = "Repair PDF",
                             onClick = {
@@ -390,14 +390,14 @@ fun RepairScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Repair Complete" else "Repair Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

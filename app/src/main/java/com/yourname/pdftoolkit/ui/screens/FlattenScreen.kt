@@ -38,51 +38,51 @@ import kotlinx.coroutines.launch
 class FlattenViewModel : ViewModel() {
     private val _state = MutableStateFlow(FlattenUiState())
     val state: StateFlow<FlattenUiState> = _state.asStateFlow()
-    
+
     fun setSourcePdf(uri: Uri, name: String) {
         _state.value = _state.value.copy(sourceUri = uri, sourceName = name)
     }
-    
+
     fun toggleFlattenAnnotations() {
         _state.value = _state.value.copy(
             flattenAnnotations = !_state.value.flattenAnnotations
         )
     }
-    
+
     fun toggleFlattenForms() {
         _state.value = _state.value.copy(
             flattenForms = !_state.value.flattenForms
         )
     }
-    
+
     fun toggleRemoveJavaScript() {
         _state.value = _state.value.copy(
             removeJavaScript = !_state.value.removeJavaScript
         )
     }
-    
+
     fun toggleRemoveEmbeddedFiles() {
         _state.value = _state.value.copy(
             removeEmbeddedFiles = !_state.value.removeEmbeddedFiles
         )
     }
-    
+
     fun toggleRasterizeContent() {
         _state.value = _state.value.copy(
             rasterizeContent = !_state.value.rasterizeContent
         )
     }
-    
+
     fun flattenPdf(
         context: android.content.Context,
         outputUri: Uri
     ) {
         if (_state.value.isProcessing) return
         val sourceUri = _state.value.sourceUri ?: return
-        
+
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             val flattener = PdfFlattener()
             val config = FlattenConfig(
                 flattenAnnotations = _state.value.flattenAnnotations,
@@ -91,7 +91,7 @@ class FlattenViewModel : ViewModel() {
                 removeEmbeddedFiles = _state.value.removeEmbeddedFiles,
                 rasterizeContent = _state.value.rasterizeContent
             )
-            
+
             val result = flattener.flattenPdf(
                 context = context,
                 inputUri = sourceUri,
@@ -101,7 +101,7 @@ class FlattenViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result.success,
@@ -112,7 +112,7 @@ class FlattenViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         _state.value = FlattenUiState()
     }
@@ -147,7 +147,7 @@ fun FlattenScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -160,13 +160,13 @@ fun FlattenScreen(
             viewModel.setSourcePdf(it, name)
         }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { viewModel.flattenPdf(context, it) }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -185,7 +185,7 @@ fun FlattenScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Info Card
             Card(
@@ -211,7 +211,7 @@ fun FlattenScreen(
                     )
                 }
             }
-            
+
             // Source PDF Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -228,7 +228,7 @@ fun FlattenScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     if (state.sourceUri != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -261,7 +261,7 @@ fun FlattenScreen(
                     }
                 }
             }
-            
+
             // Flatten Options
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -278,7 +278,7 @@ fun FlattenScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     // Annotations
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -300,9 +300,9 @@ fun FlattenScreen(
                             onCheckedChange = { viewModel.toggleFlattenAnnotations() }
                         )
                     }
-                    
+
                     Divider()
-                    
+
                     // Forms
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -324,9 +324,9 @@ fun FlattenScreen(
                             onCheckedChange = { viewModel.toggleFlattenForms() }
                         )
                     }
-                    
+
                     Divider()
-                    
+
                     // JavaScript
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -348,9 +348,9 @@ fun FlattenScreen(
                             onCheckedChange = { viewModel.toggleRemoveJavaScript() }
                         )
                     }
-                    
+
                     Divider()
-                    
+
                     // Embedded Files
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -372,9 +372,9 @@ fun FlattenScreen(
                             onCheckedChange = { viewModel.toggleRemoveEmbeddedFiles() }
                         )
                     }
-                    
+
                     Divider()
-                    
+
                     // Rasterize Content
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -398,7 +398,7 @@ fun FlattenScreen(
                     }
                 }
             }
-            
+
             // Processing State
             AnimatedVisibility(visible = state.isProcessing) {
                 Card(
@@ -421,7 +421,7 @@ fun FlattenScreen(
                     }
                 }
             }
-            
+
             // Success State
             AnimatedVisibility(visible = state.isComplete && !state.isProcessing) {
                 Card(
@@ -475,7 +475,7 @@ fun FlattenScreen(
                     }
                 }
             }
-            
+
             // Error State
             state.error?.let { error ->
                 Card(
@@ -498,9 +498,9 @@ fun FlattenScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Flatten Button
             Button(
                 onClick = {
@@ -514,7 +514,7 @@ fun FlattenScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.tool_flatten_pdf))
             }
-            
+
             // Reset Button
             if (state.isComplete) {
                 OutlinedButton(

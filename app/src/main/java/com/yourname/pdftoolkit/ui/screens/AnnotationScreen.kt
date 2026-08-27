@@ -46,47 +46,47 @@ import kotlinx.coroutines.launch
 class AnnotationViewModel : ViewModel() {
     private val _state = MutableStateFlow(AnnotationUiState())
     val state: StateFlow<AnnotationUiState> = _state.asStateFlow()
-    
+
     fun setSourcePdf(uri: Uri, name: String) {
         _state.value = _state.value.copy(sourceUri = uri, sourceName = name)
     }
-    
+
     fun setAnnotationType(type: AnnotationTypeOption) {
         _state.value = _state.value.copy(selectedType = type)
     }
-    
+
     fun setPageIndex(index: Int) {
         _state.value = _state.value.copy(pageIndex = index)
     }
-    
+
     fun setAnnotationText(text: String) {
         _state.value = _state.value.copy(annotationText = text)
     }
-    
+
     fun setColor(color: Int) {
         _state.value = _state.value.copy(selectedColor = color)
     }
-    
+
     fun setStampType(type: StampType) {
         _state.value = _state.value.copy(stampType = type)
     }
-    
+
     fun setPosition(x: Float, y: Float) {
         _state.value = _state.value.copy(positionX = x, positionY = y)
     }
-    
+
     fun setSize(width: Float, height: Float) {
         _state.value = _state.value.copy(width = width, height = height)
     }
-    
+
     fun addAnnotation() {
         val currentState = _state.value
         val annotation = createAnnotation(currentState) ?: return
-        
+
         val updatedAnnotations = _state.value.annotations + annotation
         _state.value = _state.value.copy(annotations = updatedAnnotations)
     }
-    
+
     fun removeAnnotation(index: Int) {
         val updatedAnnotations = _state.value.annotations.toMutableList()
         if (index in updatedAnnotations.indices) {
@@ -94,11 +94,11 @@ class AnnotationViewModel : ViewModel() {
             _state.value = _state.value.copy(annotations = updatedAnnotations)
         }
     }
-    
+
     fun clearAnnotations() {
         _state.value = _state.value.copy(annotations = emptyList())
     }
-    
+
     private fun createAnnotation(state: AnnotationUiState): PdfAnnotation? {
         return when (state.selectedType) {
             AnnotationTypeOption.HIGHLIGHT -> {
@@ -194,20 +194,20 @@ class AnnotationViewModel : ViewModel() {
             }
         }
     }
-    
+
     fun applyAnnotations(
         context: android.content.Context,
         outputUri: Uri
     ) {
         val sourceUri = _state.value.sourceUri ?: return
         if (_state.value.annotations.isEmpty()) return
-        
+
         if (_state.value.isProcessing) return
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             val annotator = PdfAnnotator()
-            
+
             val result = annotator.addAnnotations(
                 context = context,
                 inputUri = sourceUri,
@@ -217,7 +217,7 @@ class AnnotationViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result.success,
@@ -227,7 +227,7 @@ class AnnotationViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         _state.value = AnnotationUiState()
     }
@@ -278,7 +278,7 @@ fun AnnotationScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    
+
     val colorOptions = listOf(
         Color.YELLOW to "Yellow",
         Color.RED to "Red",
@@ -288,7 +288,7 @@ fun AnnotationScreen(
         Color.CYAN to "Cyan",
         Color.BLACK to "Black"
     )
-    
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -301,13 +301,13 @@ fun AnnotationScreen(
             viewModel.setSourcePdf(it, name)
         }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { viewModel.applyAnnotations(context, it) }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -335,7 +335,7 @@ fun AnnotationScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Source PDF Selection
             Card(
@@ -353,7 +353,7 @@ fun AnnotationScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     if (state.sourceUri != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -386,7 +386,7 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             // Annotation Type Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -403,7 +403,7 @@ fun AnnotationScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -424,7 +424,7 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             // Annotation Settings
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -441,7 +441,7 @@ fun AnnotationScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     // Page Selection
                     OutlinedTextField(
                         value = (state.pageIndex + 1).toString(),
@@ -454,7 +454,7 @@ fun AnnotationScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-                    
+
                     // Text input for notes/text boxes
                     AnimatedVisibility(
                         visible = state.selectedType in listOf(
@@ -470,7 +470,7 @@ fun AnnotationScreen(
                             maxLines = 3
                         )
                     }
-                    
+
                     // Stamp type selection
                     AnimatedVisibility(visible = state.selectedType == AnnotationTypeOption.STAMP) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -486,7 +486,7 @@ fun AnnotationScreen(
                             }
                         }
                     }
-                    
+
                     // Color selection
                     AnimatedVisibility(
                         visible = state.selectedType != AnnotationTypeOption.STAMP
@@ -514,7 +514,7 @@ fun AnnotationScreen(
                             }
                         }
                     }
-                    
+
                     // Position
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -539,7 +539,7 @@ fun AnnotationScreen(
                             singleLine = true
                         )
                     }
-                    
+
                     // Size
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -564,7 +564,7 @@ fun AnnotationScreen(
                             singleLine = true
                         )
                     }
-                    
+
                     // Add Annotation Button
                     Button(
                         onClick = { viewModel.addAnnotation() },
@@ -576,7 +576,7 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             // Added Annotations List
             if (state.annotations.isNotEmpty()) {
                 Card(
@@ -603,7 +603,7 @@ fun AnnotationScreen(
                                 Text(stringResource(R.string.action_clear_all))
                             }
                         }
-                        
+
                         state.annotations.forEachIndexed { index, annotation ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -635,7 +635,7 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             // Processing State
             AnimatedVisibility(visible = state.isProcessing) {
                 Card(
@@ -658,7 +658,7 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             // Success State
             AnimatedVisibility(visible = state.isComplete && !state.isProcessing) {
                 Card(
@@ -700,7 +700,7 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             // Error State
             state.error?.let { error ->
                 Card(
@@ -723,9 +723,9 @@ fun AnnotationScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Apply Annotations Button
             Button(
                 onClick = {
@@ -733,15 +733,15 @@ fun AnnotationScreen(
                     saveDocumentLauncher.safeLaunch(fileName, context)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = state.sourceUri != null && 
-                         state.annotations.isNotEmpty() &&
-                         !state.isProcessing
+                enabled = state.sourceUri != null &&
+                        state.annotations.isNotEmpty() &&
+                        !state.isProcessing
             ) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.annotate_save_pdf))
             }
-            
+
             // Reset Button
             if (state.isComplete) {
                 OutlinedButton(

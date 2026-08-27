@@ -4,7 +4,7 @@ ERRORS=0
 WARNINGS=0
 
 echo "========================================="
-echo "PDF Toolkit Static Analysis"
+echo "Paperly Static Analysis"
 echo "========================================="
 
 # Check 1: Bitmap recycle guard

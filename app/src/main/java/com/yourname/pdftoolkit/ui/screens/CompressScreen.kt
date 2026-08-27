@@ -51,14 +51,14 @@ fun CompressScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfCompressor = remember { PdfCompressor() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     // "Normal" is the user-facing name for our automatic hybrid strategy.
     var compressionMode by remember { mutableStateOf(CompressionMode.HYBRID) }
     var compressionSliderValue by remember { mutableStateOf(50f) }
     var targetSizeText by remember { mutableStateOf("") }
-    
+
     // Derive CompressionLevel from slider position
     val compressionLevel = when {
         compressionSliderValue < 25f -> CompressionLevel.LOW
@@ -66,7 +66,7 @@ fun CompressScreen(
         compressionSliderValue < 75f -> CompressionLevel.HIGH
         else -> CompressionLevel.MAXIMUM
     }
-    
+
     // Parse target size input to bytes (null when invalid/empty)
     val targetSizeBytes: Long? = targetSizeText.toDoubleOrNull()?.let { value ->
         (value * 1024L).toLong().takeIf { it > 0 }
@@ -80,14 +80,14 @@ fun CompressScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // Auto-load initial file if provided
     LaunchedEffect(initialUri) {
         if (initialUri != null && selectedFile == null) {
             selectedFile = FileManager.getFileInfo(context, initialUri)
         }
     }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -96,7 +96,7 @@ fun CompressScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
         }
     }
-    
+
     // Save file launcher (for custom location)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -106,13 +106,13 @@ fun CompressScreen(
                 scope.launch {
                     isProcessing = true
                     progress = 0f
-                    
+
                     val outputStream = context.contentResolver.openOutputStream(outputUri)
                     if (outputStream != null) {
                         val resolvedTargetBytes = if (compressionMode == CompressionMode.TARGET_SIZE) {
                             targetSizeBytes
                         } else null
-                        
+
                         val result = if (resolvedTargetBytes != null) {
                             pdfCompressor.compressPdfToTargetSize(
                                 context = context,
@@ -131,12 +131,12 @@ fun CompressScreen(
                                 onProgress = { progress = it }
                             )
                         }
-                        
+
                         outputStream.close()
-                        
+
                         // Get compressed file size
                         val compressedInfo = FileManager.getFileInfo(context, outputUri)
-                        
+
                         result.fold(
                             onSuccess = { compressionResult ->
                                 val actualCompressedSize = compressedInfo?.size ?: compressionResult.compressedSize
@@ -145,11 +145,11 @@ fun CompressScreen(
                                 val savedPercent = if (originalBytes > 0) {
                                     (savedBytes.toFloat() / originalBytes * 100).toInt()
                                 } else 0
-                                
+
                                 // IMPORTANT: Copy the file to cache for "Open PDF" functionality
                                 // CreateDocument URIs lose read permission after the operation
                                 val cachedUri = copyToViewerCache(context, outputUri)
-                                
+
                                 if (resolvedTargetBytes != null) {
                                     val missedTarget = actualCompressedSize > resolvedTargetBytes
                                     resultSuccess = true
@@ -199,14 +199,14 @@ fun CompressScreen(
                         resultSuccess = false
                         resultMessage = "Cannot create output file"
                     }
-                    
+
                     isProcessing = false
                     showResult = true
                 }
             }
         }
     }
-    
+
     // Function to compress with default location
     fun compressWithDefaultLocation() {
         scope.launch {
@@ -215,12 +215,12 @@ fun CompressScreen(
             val originalFile = selectedFile!!
             val isTargetMode = compressionMode == CompressionMode.TARGET_SIZE
             val resolvedTargetBytes = if (isTargetMode) targetSizeBytes else null
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val fileName = FileManager.generateOutputFileName("compressed")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val compressResult = if (resolvedTargetBytes != null) {
                             pdfCompressor.compressPdfToTargetSize(
@@ -240,9 +240,9 @@ fun CompressScreen(
                                 onProgress = { progress = it }
                             )
                         }
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         compressResult.fold(
                             onSuccess = { cResult ->
                                 val compressedSize = FileManager.getFileInfo(context, outputResult.outputFile.contentUri)?.size ?: outputResult.outputFile.file.length()
@@ -251,7 +251,7 @@ fun CompressScreen(
                                 val savedPercent = if (originalBytes > 0) {
                                     (savedBytes.toFloat() / originalBytes * 100).toInt()
                                 } else 0
-                                
+
                                 val message = buildString {
                                     if (resolvedTargetBytes != null && compressedSize > resolvedTargetBytes) {
                                         append("Target could not be reached.\n\n")
@@ -293,11 +293,11 @@ fun CompressScreen(
                     Triple(false, e.message ?: "Compression failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
-            
+
             // Record in history
             if (resultSuccess && result.third != null) {
                 // Add to recent files
@@ -323,7 +323,7 @@ fun CompressScreen(
                     errorMessage = result.second
                 )
             }
-            
+
             if (resultSuccess) {
                 selectedFile = null
             }
@@ -331,7 +331,7 @@ fun CompressScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -363,8 +363,8 @@ fun CompressScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
@@ -409,7 +409,7 @@ fun CompressScreen(
                                 }
                             }
                         }
-                        
+
                         // Mode selector
                         item {
                             Card(
@@ -428,9 +428,9 @@ fun CompressScreen(
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
-                                    
+
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -444,7 +444,7 @@ fun CompressScreen(
                                             } else null,
                                             modifier = Modifier.weight(1f)
                                         )
-                                        
+
                                         FilterChip(
                                             selected = compressionMode == CompressionMode.TARGET_SIZE,
                                             onClick = { compressionMode = CompressionMode.TARGET_SIZE },
@@ -455,9 +455,9 @@ fun CompressScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     Text(
                                         text = if (compressionMode == CompressionMode.HYBRID) {
                                             "Automatically balances quality and file size"
@@ -470,7 +470,7 @@ fun CompressScreen(
                                 }
                             }
                         }
-                        
+
                         // Hybrid mode: compression level slider
                         if (compressionMode == CompressionMode.HYBRID) {
                             item {
@@ -513,9 +513,9 @@ fun CompressScreen(
                                                 )
                                             }
                                         }
-                                        
+
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        
+
                                         Text(
                                             text = when (compressionLevel) {
                                                 CompressionLevel.LOW -> "Best quality, minor size reduction"
@@ -526,16 +526,16 @@ fun CompressScreen(
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        
+
                                         Spacer(modifier = Modifier.height(12.dp))
-                                        
+
                                         Slider(
                                             value = compressionSliderValue,
                                             onValueChange = { compressionSliderValue = it },
                                             valueRange = 0f..100f,
                                             modifier = Modifier.fillMaxWidth()
                                         )
-                                        
+
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween
@@ -555,7 +555,7 @@ fun CompressScreen(
                                 }
                             }
                         }
-                        
+
                         // Target size mode: numeric target input
                         if (compressionMode == CompressionMode.TARGET_SIZE) {
                             item {
@@ -575,17 +575,17 @@ fun CompressScreen(
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.SemiBold
                                         )
-                                        
+
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        
+
                                         Text(
                                             text = "Enter the maximum size you need for this PDF",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        
+
                                         Spacer(modifier = Modifier.height(12.dp))
-                                        
+
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -604,9 +604,9 @@ fun CompressScreen(
                                                 isError = targetSizeText.isNotEmpty() && targetSizeBytes == null,
                                                 modifier = Modifier.weight(1f)
                                             )
-                                            
+
                                         }
-                                        
+
                                         if (targetSizeText.isNotEmpty() && targetSizeBytes == null) {
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
@@ -621,7 +621,7 @@ fun CompressScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -650,7 +650,7 @@ fun CompressScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -675,9 +675,9 @@ fun CompressScreen(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = "Compress PDF",
                             onClick = {
@@ -697,14 +697,14 @@ fun CompressScreen(
             }
         }
     }
-    
+
     // Result dialog
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Compression Complete" else "Compression Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },
@@ -727,7 +727,7 @@ private fun copyToViewerCache(context: android.content.Context, uri: Uri): Uri? 
         if (!cacheDir.exists()) {
             cacheDir.mkdirs()
         }
-        
+
         // Clean old cached files (older than 24 hours)
         val oneDayAgo = System.currentTimeMillis() - (24 * 60 * 60 * 1000)
         cacheDir.listFiles()?.forEach { file ->
@@ -735,15 +735,15 @@ private fun copyToViewerCache(context: android.content.Context, uri: Uri): Uri? 
                 file.delete()
             }
         }
-        
+
         val cachedFile = java.io.File(cacheDir, "view_${System.currentTimeMillis()}.pdf")
-        
+
         context.contentResolver.openInputStream(uri)?.use { input ->
             cachedFile.outputStream().use { output ->
                 input.copyTo(output)
             }
         }
-        
+
         if (cachedFile.exists() && cachedFile.length() > 0) {
             androidx.core.content.FileProvider.getUriForFile(
                 context,

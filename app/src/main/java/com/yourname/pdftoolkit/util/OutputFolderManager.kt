@@ -14,11 +14,11 @@ import java.io.OutputStream
 
 /**
  * Manages the app's default output folder for saved PDFs and conversions.
- * Creates a "PDF Toolkit" folder in the device's Documents directory.
+ * Creates a "Paperly" folder in the device's Documents directory.
  */
 object OutputFolderManager {
     
-    private const val APP_FOLDER_NAME = "PDF Toolkit"
+    private const val APP_FOLDER_NAME = "Paperly"
     
     /**
      * Get or create the app's output folder.

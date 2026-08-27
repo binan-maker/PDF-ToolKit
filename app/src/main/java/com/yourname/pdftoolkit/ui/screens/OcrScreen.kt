@@ -42,13 +42,13 @@ import kotlinx.coroutines.launch
 class OcrViewModel : ViewModel() {
     private val _state = MutableStateFlow(OcrUiState())
     val state: StateFlow<OcrUiState> = _state.asStateFlow()
-    
+
     private var ocrProcessor: PdfOcrProcessor? = null
-    
+
     fun setSourcePdf(uri: Uri, name: String) {
         _state.value = _state.value.copy(sourceUri = uri, sourceName = name)
     }
-    
+
     fun setMode(mode: OcrMode) {
         _state.value = _state.value.copy(mode = mode)
     }
@@ -56,23 +56,23 @@ class OcrViewModel : ViewModel() {
     fun setViewFormat(format: OcrViewFormat) {
         _state.value = _state.value.copy(viewFormat = format)
     }
-    
+
     fun extractText(context: android.content.Context) {
         if (_state.value.isProcessing) return
         val sourceUri = _state.value.sourceUri ?: return
-        
+
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             ocrProcessor = PdfOcrProcessor(context)
-            
+
             val result = ocrProcessor?.extractTextWithOcr(
                 pdfUri = sourceUri,
                 progressCallback = { progress ->
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result?.success == true,
@@ -83,19 +83,19 @@ class OcrViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun makeSearchable(
         context: android.content.Context,
         outputUri: Uri
     ) {
         if (_state.value.isProcessing) return
         val sourceUri = _state.value.sourceUri ?: return
-        
+
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             ocrProcessor = PdfOcrProcessor(context)
-            
+
             val result = ocrProcessor?.makeSearchable(
                 inputUri = sourceUri,
                 outputUri = outputUri,
@@ -103,10 +103,10 @@ class OcrViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             if (result?.success == true) {
                 com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, outputUri)
-                
+
                 // Record in history
                 com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
                     context = context,
@@ -125,7 +125,7 @@ class OcrViewModel : ViewModel() {
                     errorMessage = result.errorMessage
                 )
             }
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result?.success == true,
@@ -135,13 +135,13 @@ class OcrViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         ocrProcessor?.close()
         ocrProcessor = null
         _state.value = OcrUiState()
     }
-    
+
     override fun onCleared() {
         super.onCleared()
         ocrProcessor?.close()
@@ -187,7 +187,7 @@ fun OcrScreen(
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     var showFullScreenReader by remember { mutableStateOf(false) }
-    
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -200,13 +200,13 @@ fun OcrScreen(
             viewModel.setSourcePdf(it, name)
         }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { viewModel.makeSearchable(context, it) }
     }
-    
+
     val saveTextLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
@@ -226,7 +226,7 @@ fun OcrScreen(
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -245,7 +245,7 @@ fun OcrScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Info Card
             Card(
@@ -271,7 +271,7 @@ fun OcrScreen(
                     )
                 }
             }
-            
+
             // Source PDF Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -288,7 +288,7 @@ fun OcrScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     if (state.sourceUri != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -321,7 +321,7 @@ fun OcrScreen(
                     }
                 }
             }
-            
+
             // Mode Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -338,7 +338,7 @@ fun OcrScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     // Extract Text Mode
                     Card(
                         onClick = { viewModel.setMode(OcrMode.EXTRACT_TEXT) },
@@ -374,7 +374,7 @@ fun OcrScreen(
                             }
                         }
                     }
-                    
+
                     // Make Searchable Mode
                     Card(
                         onClick = { viewModel.setMode(OcrMode.MAKE_SEARCHABLE) },
@@ -412,7 +412,7 @@ fun OcrScreen(
                     }
                 }
             }
-            
+
             // Processing State
             AnimatedVisibility(visible = state.isProcessing) {
                 Card(
@@ -440,13 +440,13 @@ fun OcrScreen(
                     }
                 }
             }
-            
+
             // Extracted Text Result
             AnimatedVisibility(
-                visible = state.isComplete && 
-                         !state.isProcessing && 
-                         state.mode == OcrMode.EXTRACT_TEXT &&
-                         state.extractedText.isNotEmpty()
+                visible = state.isComplete &&
+                        !state.isProcessing &&
+                        state.mode == OcrMode.EXTRACT_TEXT &&
+                        state.extractedText.isNotEmpty()
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -546,7 +546,7 @@ fun OcrScreen(
                                 } else null
                             )
                         }
-                        
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -556,7 +556,7 @@ fun OcrScreen(
                             )
                         ) {
                             val displayText = if (state.viewFormat == OcrViewFormat.MARKDOWN) state.markdownText else state.extractedText
-                            
+
                             Column(
                                 modifier = Modifier
                                     .padding(12.dp)
@@ -626,7 +626,7 @@ fun OcrScreen(
                                 }
                             }
                         }
-                        
+
                         Text(
                             text = "${state.extractedText.length} characters extracted from ${state.pagesProcessed} pages",
                             style = MaterialTheme.typography.bodySmall,
@@ -635,12 +635,12 @@ fun OcrScreen(
                     }
                 }
             }
-            
+
             // Success State (Make Searchable)
             AnimatedVisibility(
-                visible = state.isComplete && 
-                         !state.isProcessing && 
-                         state.mode == OcrMode.MAKE_SEARCHABLE
+                visible = state.isComplete &&
+                        !state.isProcessing &&
+                        state.mode == OcrMode.MAKE_SEARCHABLE
             ) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -681,7 +681,7 @@ fun OcrScreen(
                     }
                 }
             }
-            
+
             // Error State
             state.error?.let { error ->
                 Card(
@@ -704,9 +704,9 @@ fun OcrScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Action Button
             Button(
                 onClick = {
@@ -730,7 +730,7 @@ fun OcrScreen(
                     if (state.mode == OcrMode.EXTRACT_TEXT) "Extract Text" else "Make Searchable"
                 )
             }
-            
+
             // Reset Button
             if (state.isComplete) {
                 OutlinedButton(

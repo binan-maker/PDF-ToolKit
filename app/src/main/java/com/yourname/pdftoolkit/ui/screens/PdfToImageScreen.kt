@@ -54,7 +54,7 @@ fun PdfToImageScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val imageConverter = remember { ImageConverter() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var imageFormat by remember { mutableStateOf(
@@ -71,7 +71,7 @@ fun PdfToImageScreen(
     var resultMessage by remember { mutableStateOf("") }
     var savedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showMultiOutputScreen by remember { mutableStateOf(false) }
-    
+
     // File picker launcher - with PDF MIME type filter and validation
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -86,7 +86,7 @@ fun PdfToImageScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
         }
     }
-    
+
     // Open the specific saved images, or fall back to generic gallery
     fun openGallery() {
         if (savedImageUris.isNotEmpty()) {
@@ -105,18 +105,18 @@ fun PdfToImageScreen(
             }
         }
     }
-    
+
     // Convert PDF to images
     fun convertPdfToImages() {
         val file = selectedFile ?: return
-        
+
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val uriList = mutableListOf<Uri>()
             var savedCount = 0
-            
+
             val result = imageConverter.pdfToImages(
                 context = context,
                 inputUri = file.uri,
@@ -144,14 +144,14 @@ fun PdfToImageScreen(
                 },
                 onProgress = { progress = it }
             )
-            
+
             savedImageUris = uriList
-            
+
             result.fold(
                 onSuccess = { _ ->
                     resultSuccess = true
                     resultMessage = "Successfully saved $savedCount images to your gallery (Pictures/PDF Toolkit)"
-                    
+
                     // Record in history with isImageOutput = true
                     HistoryManager.recordSuccess(
                         context = context,
@@ -168,7 +168,7 @@ fun PdfToImageScreen(
                 onFailure = { error ->
                     resultSuccess = false
                     resultMessage = error.message ?: "Conversion failed"
-                    
+
                     // Record failure
                     HistoryManager.recordFailure(
                         context = context,
@@ -178,7 +178,7 @@ fun PdfToImageScreen(
                     )
                 }
             )
-            
+
             isProcessing = false
             if (resultSuccess && savedImageUris.size > 1) {
                 showMultiOutputScreen = true
@@ -187,7 +187,7 @@ fun PdfToImageScreen(
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -219,8 +219,8 @@ fun PdfToImageScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
@@ -265,7 +265,7 @@ fun PdfToImageScreen(
                                 }
                             }
                         }
-                        
+
                         // Image format selection
                         item {
                             Text(
@@ -275,7 +275,7 @@ fun PdfToImageScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -290,7 +290,7 @@ fun PdfToImageScreen(
                                 }
                             }
                         }
-                        
+
                         // DPI slider
                         item {
                             Card(
@@ -320,16 +320,16 @@ fun PdfToImageScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     Slider(
                                         value = dpi,
                                         onValueChange = { dpi = it },
                                         valueRange = 72f..300f,
                                         steps = 4
                                     )
-                                    
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -348,7 +348,7 @@ fun PdfToImageScreen(
                                 }
                             }
                         }
-                        
+
                         // Info card
                         item {
                             Card(
@@ -379,7 +379,7 @@ fun PdfToImageScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -408,7 +408,7 @@ fun PdfToImageScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -439,7 +439,7 @@ fun PdfToImageScreen(
             }
         }
     }
-    
+
     // Result dialog with Open Gallery option (for single output)
     if (showResult) {
         AlertDialog(
@@ -484,14 +484,14 @@ fun PdfToImageScreen(
             }
         )
     }
-    
+
     // Multi-output result screen (for multiple images)
     if (showMultiOutputScreen && savedImageUris.isNotEmpty()) {
         MultiOutputResultScreen(
             title = stringResource(R.string.tool_pdf_to_images),
             outputUris = savedImageUris,
             isImageOutput = true,
-            onNavigateBack = { 
+            onNavigateBack = {
                 showMultiOutputScreen = false
                 savedImageUris = emptyList()
                 selectedFile = null
@@ -514,7 +514,7 @@ private suspend fun saveBitmapToGallery(
     try {
         val mimeType = format.mimeType
         val extension = format.extension
-        
+
         // Determine compress format and quality
         val (compressFormat, quality) = when (format) {
             ImageFormat.WEBP -> {
@@ -529,7 +529,7 @@ private suspend fun saveBitmapToGallery(
             ImageFormat.PNG -> Pair(Bitmap.CompressFormat.PNG, 100) // PNG is lossless
             ImageFormat.JPEG -> Pair(Bitmap.CompressFormat.JPEG, 92)
         }
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // Android 10+ - Use MediaStore
             val contentValues = ContentValues().apply {
@@ -538,21 +538,21 @@ private suspend fun saveBitmapToGallery(
                 put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/PDF Toolkit")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
-            
+
             val uri = context.contentResolver.insert(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 contentValues
             ) ?: return@withContext null
-            
+
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                 bitmap.compress(compressFormat, quality, outputStream)
                 outputStream.flush()
             }
-            
+
             contentValues.clear()
             contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
             context.contentResolver.update(uri, contentValues, null, null)
-            
+
             uri
         } else {
             // Legacy storage
@@ -560,20 +560,20 @@ private suspend fun saveBitmapToGallery(
             val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
             val appDir = File(picturesDir, "PDF Toolkit")
             if (!appDir.exists()) appDir.mkdirs()
-            
+
             val file = File(appDir, "$fileName.$extension")
             FileOutputStream(file).use { outputStream ->
                 bitmap.compress(compressFormat, quality, outputStream)
                 outputStream.flush()
             }
-            
+
             // Notify gallery
             val values = ContentValues().apply {
                 put(MediaStore.Images.Media.DATA, file.absolutePath)
                 put(MediaStore.Images.Media.MIME_TYPE, mimeType)
             }
             context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            
+
             Uri.fromFile(file)
         }
     } catch (e: Exception) {

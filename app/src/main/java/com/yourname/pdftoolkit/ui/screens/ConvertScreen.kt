@@ -68,7 +68,7 @@ fun ConvertScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val imageConverter = remember { ImageConverter() }
-    
+
     // State
     var selectedImages by remember { mutableStateOf<List<ImageInfo>>(emptyList()) }
     var pageSize by remember { mutableStateOf(PageSize.A4) }
@@ -80,7 +80,7 @@ fun ConvertScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // Crop state - track which image index is being cropped
     var cropImageIndex by remember { mutableStateOf(-1) }
     var selectedItemIndex by remember { mutableStateOf<Int?>(null) }
@@ -88,7 +88,7 @@ fun ConvertScreen(
     val hasOrderChanged = remember(selectedImages) {
         selectedImages.zipWithNext { a, b -> a.originalIndex > b.originalIndex }.any { it }
     }
-    
+
     // Crop launcher - handles the result from uCrop activity
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -108,7 +108,7 @@ fun ConvertScreen(
         }
         cropImageIndex = -1
     }
-    
+
     // Image picker launcher
     val pickImagesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -128,7 +128,7 @@ fun ConvertScreen(
             selectedImages = selectedImages + newImages
         }
     }
-    
+
     // Save file launcher (for custom location)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -138,7 +138,7 @@ fun ConvertScreen(
                 scope.launch {
                     isProcessing = true
                     progress = 0f
-                    
+
                     val outputStream = context.contentResolver.openOutputStream(outputUri)
                     if (outputStream != null) {
                         val result = imageConverter.imagesToPdf(
@@ -149,9 +149,9 @@ fun ConvertScreen(
                             quality = quality.toInt(),
                             onProgress = { progress = it }
                         )
-                        
+
                         outputStream.close()
-                        
+
                         result.fold(
                             onSuccess = { count ->
                                 resultSuccess = true
@@ -168,26 +168,26 @@ fun ConvertScreen(
                         resultSuccess = false
                         resultMessage = "Cannot create output file"
                     }
-                    
+
                     isProcessing = false
                     showResult = true
                 }
             }
         }
     }
-    
+
     // Function to convert with default location
     fun convertWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
             val imageCount = selectedImages.size
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val fileName = FileManager.generateOutputFileName("images")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val convertResult = imageConverter.imagesToPdf(
                             context = context,
@@ -197,9 +197,9 @@ fun ConvertScreen(
                             quality = quality.toInt(),
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         convertResult.fold(
                             onSuccess = { count ->
                                 Triple(true, "Successfully converted $count images to PDF\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
@@ -216,11 +216,11 @@ fun ConvertScreen(
                     Triple(false, e.message ?: "Conversion failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
-            
+
             // Record in history
             if (resultSuccess && result.third != null) {
                 // Add to recent files
@@ -242,7 +242,7 @@ fun ConvertScreen(
                     errorMessage = result.second
                 )
             }
-            
+
             if (resultSuccess) {
                 selectedImages = emptyList()
             }
@@ -250,7 +250,7 @@ fun ConvertScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -285,7 +285,7 @@ fun ConvertScreen(
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Image list header
                         item(span = { GridItemSpan(3) }) {
@@ -309,7 +309,7 @@ fun ConvertScreen(
                                         )
                                     }
                                 }
-                                
+
                                 Row {
                                     if (hasOrderChanged) {
                                         TextButton(
@@ -332,7 +332,7 @@ fun ConvertScreen(
                                 }
                             }
                         }
-                        
+
                         // Image list
                         itemsIndexed(
                             items = selectedImages,
@@ -406,7 +406,7 @@ fun ConvertScreen(
                                 }
                             )
                         }
-                        
+
                         // Add more button
                         item(span = { GridItemSpan(3) }) {
                             OutlinedButton(
@@ -420,7 +420,7 @@ fun ConvertScreen(
                                 Text(stringResource(R.string.action_add_more_images))
                             }
                         }
-                        
+
                         // Settings section
                         item(span = { GridItemSpan(3) }) {
                             Spacer(modifier = Modifier.height(8.dp))
@@ -431,7 +431,7 @@ fun ConvertScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         // Page size selection
                         item(span = { GridItemSpan(3) }) {
                             Card(
@@ -450,9 +450,9 @@ fun ConvertScreen(
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Medium
                                     )
-                                    
+
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -468,7 +468,7 @@ fun ConvertScreen(
                                 }
                             }
                         }
-                        
+
                         // Quality slider
                         item(span = { GridItemSpan(3) }) {
                             Card(
@@ -498,16 +498,16 @@ fun ConvertScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     Slider(
                                         value = quality,
                                         onValueChange = { quality = it },
                                         valueRange = 20f..100f,
                                         steps = 7
                                     )
-                                    
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -528,7 +528,7 @@ fun ConvertScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -557,7 +557,7 @@ fun ConvertScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -582,9 +582,9 @@ fun ConvertScreen(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = "Convert to PDF",
                             onClick = {
@@ -603,14 +603,14 @@ fun ConvertScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Conversion Complete" else "Conversion Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },
@@ -672,7 +672,7 @@ private fun ImagePreviewCard(
                     .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
-            
+
             // Position badge (top-left)
             Surface(
                 modifier = Modifier
@@ -697,7 +697,7 @@ private fun ImagePreviewCard(
                     }
                 )
             }
-            
+
             // Original page number (if different)
             if (hasChanged) {
                 Surface(
@@ -715,7 +715,7 @@ private fun ImagePreviewCard(
                     )
                 }
             }
-            
+
             // Move controls (when selected)
             if (isSelected) {
                 Column(

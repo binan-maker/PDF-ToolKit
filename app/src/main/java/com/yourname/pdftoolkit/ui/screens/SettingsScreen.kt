@@ -1,14 +1,10 @@
 package com.yourname.pdftoolkit.ui.screens
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -28,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.yourname.pdftoolkit.BuildConfig
-import com.yourname.pdftoolkit.ui.components.LicensesDialog
 import com.yourname.pdftoolkit.util.CacheManager
 import com.yourname.pdftoolkit.util.ThemeManager
 import com.yourname.pdftoolkit.util.ThemeMode
@@ -38,7 +32,6 @@ import com.yourname.pdftoolkit.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * Image format options for default setting.
@@ -47,7 +40,6 @@ enum class DefaultImageFormat(val displayName: String, val extension: String) {
     WEBP("WebP (Recommended)", "webp"),
     JPEG("JPEG", "jpg")
 }
-
 /**
  * Settings preferences manager.
  */
@@ -55,19 +47,19 @@ object SettingsPreferences {
     private const val PREFS_NAME = "pdf_toolkit_settings"
     private const val KEY_COMPRESSION_QUALITY = "compression_quality"
     private const val KEY_IMAGE_FORMAT = "default_image_format"
-    
+
     fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
-    
+
     fun getCompressionQuality(context: Context): Int {
         return getPrefs(context).getInt(KEY_COMPRESSION_QUALITY, 75)
     }
-    
+
     fun setCompressionQuality(context: Context, quality: Int) {
         getPrefs(context).edit().putInt(KEY_COMPRESSION_QUALITY, quality).apply()
     }
-    
+
     fun getDefaultImageFormat(context: Context): DefaultImageFormat {
         val formatName = getPrefs(context).getString(KEY_IMAGE_FORMAT, DefaultImageFormat.WEBP.name)
         return try {
@@ -76,15 +68,14 @@ object SettingsPreferences {
             DefaultImageFormat.WEBP
         }
     }
-    
+
     fun setDefaultImageFormat(context: Context, format: DefaultImageFormat) {
         getPrefs(context).edit().putString(KEY_IMAGE_FORMAT, format.name).apply()
     }
 }
-
 /**
  * Comprehensive Settings Screen with organized sections.
- * Includes: Default compression quality, Default image format, Cache cleanup, About/Privacy/License
+ * Includes: Default compression quality, Default image format, Cache cleanup, and About
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,34 +84,32 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+
     var cacheSize by remember { mutableStateOf("Calculating...") }
     var isClearing by remember { mutableStateOf(false) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
-    var showFeatureRequestDialog by remember { mutableStateOf(false) }
     var showImageFormatDialog by remember { mutableStateOf(false) }
-    var showLicensesDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageScreen by remember { mutableStateOf(false) }
-    
+
     // Settings state
     var compressionQuality by remember { mutableStateOf(SettingsPreferences.getCompressionQuality(context)) }
     var defaultImageFormat by remember { mutableStateOf(SettingsPreferences.getDefaultImageFormat(context)) }
-    
+
     // Theme state
     val currentTheme by ThemeManager.getThemeMode(context).collectAsState(initial = ThemeMode.SYSTEM)
-    
+
     // Language state
     val currentLanguage by LanguageManager.getLanguageFlow(context).collectAsState(initial = LanguageManager.getCurrentLanguage())
-    
+
     // Calculate cache size on screen load
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             cacheSize = CacheManager.getFormattedCacheSize(context)
         }
     }
-    
+
     if (showLanguageScreen) {
         LanguageSelectionScreen(
             currentLanguage = currentLanguage,
@@ -156,19 +145,19 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            contentPadding = PaddingValues(vertical = 4.dp)
         ) {
             // Quality Settings Section
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_section_quality))
             }
-            
+
             // Default Compression Quality
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -202,12 +191,12 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Slider(
                         value = compressionQuality.toFloat(),
-                        onValueChange = { 
+                        onValueChange = {
                             compressionQuality = it.toInt()
                         },
                         onValueChangeFinished = {
@@ -217,7 +206,7 @@ fun SettingsScreen(
                         steps = 6,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
-                    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -237,7 +226,7 @@ fun SettingsScreen(
                     }
                 }
             }
-            
+
             // Default Image Format
             item {
                 SettingsItem(
@@ -247,12 +236,12 @@ fun SettingsScreen(
                     onClick = { showImageFormatDialog = true }
                 )
             }
-            
+
             // Appearance Section
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_section_appearance))
             }
-            
+
             // Theme Mode
             item {
                 SettingsItem(
@@ -262,12 +251,12 @@ fun SettingsScreen(
                     onClick = { showThemeDialog = true }
                 )
             }
-            
+
             // Language Section
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_section_language))
             }
-            
+
             // Language Selector
             item {
                 SettingsItem(
@@ -277,12 +266,12 @@ fun SettingsScreen(
                     onClick = { showLanguageScreen = true }
                 )
             }
-            
+
             // Storage Section
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_section_storage))
             }
-            
+
             item {
                 SettingsItem(
                     title = stringResource(R.string.settings_cache_size),
@@ -302,48 +291,12 @@ fun SettingsScreen(
                     }
                 }
             }
-            
-            // Support Section
-            item {
-                SettingsSectionHeader(title = stringResource(R.string.settings_section_support))
-            }
-            
-            item {
-                SettingsItem(
-                    title = stringResource(R.string.settings_request_feature),
-                    subtitle = stringResource(R.string.settings_request_feature_subtitle),
-                    icon = Icons.Default.Lightbulb,
-                    onClick = { showFeatureRequestDialog = true }
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    title = stringResource(R.string.settings_report_bug),
-                    subtitle = stringResource(R.string.settings_report_bug_subtitle),
-                    icon = Icons.Default.BugReport,
-                    onClick = {
-                        sendBugReport(context)
-                    }
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    title = stringResource(R.string.settings_rate_app),
-                    subtitle = stringResource(R.string.settings_rate_app_subtitle),
-                    icon = Icons.Default.Star,
-                    onClick = {
-                        openPlayStore(context)
-                    }
-                )
-            }
-            
+
             // About Section
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_section_about))
             }
-            
+
             item {
                 SettingsItem(
                     title = stringResource(R.string.settings_version),
@@ -352,29 +305,7 @@ fun SettingsScreen(
                     onClick = { showAboutDialog = true }
                 )
             }
-            
-            item {
-                SettingsItem(
-                    title = stringResource(R.string.settings_privacy_policy),
-                    subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
-                    icon = Icons.Default.PrivacyTip,
-                    onClick = {
-                        openPrivacyPolicy(context)
-                    }
-                )
-            }
-            
-            item {
-                SettingsItem(
-                    title = stringResource(R.string.settings_licenses),
-                    subtitle = stringResource(R.string.settings_licenses_subtitle),
-                    icon = Icons.Default.Description,
-                    onClick = {
-                        showLicensesDialog = true
-                    }
-                )
-            }
-            
+
             // App Info Footer
             item {
                 Spacer(modifier = Modifier.height(32.dp))
@@ -417,21 +348,14 @@ fun SettingsScreen(
                     )
                 }
             }
-            
+
             // Bottom spacing for navigation
             item {
                 Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
-    
-    // Licenses Dialog
-    if (showLicensesDialog) {
-        LicensesDialog(
-            onDismiss = { showLicensesDialog = false }
-        )
-    }
-    
+
     // Theme Selection Dialog
     if (showThemeDialog) {
         AlertDialog(
@@ -489,7 +413,7 @@ fun SettingsScreen(
             }
         )
     }
-    
+
     // Image Format Selection Dialog
     if (showImageFormatDialog) {
         AlertDialog(
@@ -549,7 +473,7 @@ fun SettingsScreen(
             }
         )
     }
-    
+
     // Clear Cache Dialog
     if (showClearCacheDialog) {
         AlertDialog(
@@ -584,7 +508,7 @@ fun SettingsScreen(
             }
         )
     }
-    
+
     // About Dialog
     if (showAboutDialog) {
         AlertDialog(
@@ -596,9 +520,9 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(stringResource(R.string.settings_about_description))
-                    
+
                     Divider()
-                    
+
                     Text(
                         text = stringResource(R.string.settings_about_features),
                         fontWeight = FontWeight.SemiBold
@@ -608,9 +532,9 @@ fun SettingsScreen(
                     Text(stringResource(R.string.settings_about_feature_3))
                     Text(stringResource(R.string.settings_about_feature_4))
                     Text(stringResource(R.string.settings_about_feature_5))
-                    
+
                     Divider()
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -641,17 +565,7 @@ fun SettingsScreen(
             }
         )
     }
-    
-    // Feature Request Dialog
-    if (showFeatureRequestDialog) {
-        FeatureRequestDialog(
-            onDismiss = { showFeatureRequestDialog = false },
-            onSubmit = { featureText ->
-                sendFeatureRequest(context, featureText)
-                showFeatureRequestDialog = false
-            }
-        )
-    }
+
 }
 
 @Composable
@@ -674,7 +588,7 @@ private fun SettingsSectionHeader(title: String) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
     )
 }
 
@@ -712,9 +626,9 @@ private fun SettingsItem(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -727,7 +641,7 @@ private fun SettingsItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             if (trailing != null) {
                 trailing()
             } else {
@@ -739,186 +653,4 @@ private fun SettingsItem(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FeatureRequestDialog(
-    onDismiss: () -> Unit,
-    onSubmit: (String) -> Unit
-) {
-    var featureText by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Feature") }
-    var showCategoryMenu by remember { mutableStateOf(false) }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Lightbulb, contentDescription = null) },
-        title = { Text(stringResource(R.string.feature_request_title)) },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(stringResource(R.string.feature_request_description))
-                
-                // Category selector
-                ExposedDropdownMenuBox(
-                    expanded = showCategoryMenu,
-                    onExpandedChange = { showCategoryMenu = it }
-                ) {
-                    OutlinedTextField(
-                        value = category,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.feature_request_category)) },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryMenu)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = showCategoryMenu,
-                        onDismissRequest = { showCategoryMenu = false }
-                    ) {
-                        listOf("Feature", "Improvement", "UI/UX", "Other").forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    category = option
-                                    showCategoryMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                OutlinedTextField(
-                    value = featureText,
-                    onValueChange = { featureText = it },
-                    label = { Text(stringResource(R.string.feature_request_idea)) },
-                    placeholder = { Text(stringResource(R.string.feature_request_placeholder)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    maxLines = 6
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSubmit("[$category] $featureText") },
-                enabled = featureText.isNotBlank()
-            ) {
-                Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.action_submit))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        }
-    )
-}
-
-// Helper functions for intents
-
-/**
- * Developer email for support requests.
- */
-private const val DEVELOPER_EMAIL = "developerncn29@gmail.com"
-
-private fun sendFeatureRequest(context: Context, featureText: String) {
-    val deviceInfo = """
-        
-        ---
-        Device: ${Build.MANUFACTURER} ${Build.MODEL}
-        Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})
-        App Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})
-    """.trimIndent()
-    
-    val emailBody = "$featureText\n$deviceInfo"
-    
-    try {
-        // Restrict to Gmail only
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "message/rfc822"
-            setPackage("com.google.android.gm") // Gmail package
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(DEVELOPER_EMAIL))
-            putExtra(Intent.EXTRA_SUBJECT, "[Feature Request] PDF Toolkit")
-            putExtra(Intent.EXTRA_TEXT, emailBody)
-        }
-        
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        // Gmail not installed
-        Toast.makeText(
-            context, 
-            "Gmail app is required. Please install Gmail or send feedback to $DEVELOPER_EMAIL", 
-            Toast.LENGTH_LONG
-        ).show()
-    }
-}
-
-private fun sendBugReport(context: Context) {
-    val deviceInfo = """
-        Bug Description:
-        [Please describe the issue you encountered]
-        
-        Steps to Reproduce:
-        1. 
-        2. 
-        3. 
-        
-        Expected Behavior:
-        [What did you expect to happen?]
-        
-        Actual Behavior:
-        [What actually happened?]
-        
-        ---
-        Device: ${Build.MANUFACTURER} ${Build.MODEL}
-        Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})
-        App Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})
-    """.trimIndent()
-    
-    try {
-        // Restrict to Gmail only
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "message/rfc822"
-            setPackage("com.google.android.gm") // Gmail package
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(DEVELOPER_EMAIL))
-            putExtra(Intent.EXTRA_SUBJECT, "[Bug Report] PDF Toolkit")
-            putExtra(Intent.EXTRA_TEXT, deviceInfo)
-        }
-        
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        // Gmail not installed
-        Toast.makeText(
-            context, 
-            "Gmail app is required. Please install Gmail or send bug reports to $DEVELOPER_EMAIL", 
-            Toast.LENGTH_LONG
-        ).show()
-    }
-}
-
-private fun openPlayStore(context: Context) {
-    try {
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.yourname.pdftoolkit"))
-        )
-    } catch (e: Exception) {
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.yourname.pdftoolkit"))
-        )
-    }
-}
-
-private fun openPrivacyPolicy(context: Context) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://karna14314.github.io/Pdf_Tools/"))
-    context.startActivity(intent)
 }

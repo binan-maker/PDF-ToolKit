@@ -36,7 +36,7 @@ fun ExtractTextScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val textExtractor = remember { TextExtractor() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var hasExtractableText by remember { mutableStateOf<Boolean?>(null) }
@@ -48,7 +48,7 @@ fun ExtractTextScreen(
     var showResult by remember { mutableStateOf(false) }
     var resultSuccess by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf("") }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -57,12 +57,12 @@ fun ExtractTextScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
             hasExtractableText = null
             previewText = ""
-            
+
             // Check if PDF has extractable text
             scope.launch {
                 isChecking = true
                 hasExtractableText = textExtractor.hasExtractableText(context, uri)
-                
+
                 if (hasExtractableText == true) {
                     // Get preview of first page
                     previewText = textExtractor.extractFromPage(context, uri, 1)
@@ -73,24 +73,24 @@ fun ExtractTextScreen(
             }
         }
     }
-    
+
     // Save file launcher
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
         uri?.let { saveUri ->
             val file = selectedFile ?: return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     val options = TextExtractionOptions(
                         addPageBreaks = addPageBreaks,
                         preserveLineBreaks = true
                     )
-                    
+
                     val result = textExtractor.extractToTextFile(
                         context = context,
                         inputUri = file.uri,
@@ -98,7 +98,7 @@ fun ExtractTextScreen(
                         options = options,
                         onProgress = { progress = it }
                     )
-                    
+
                     result.fold(
                         onSuccess = { extractResult ->
                             resultSuccess = true
@@ -119,13 +119,13 @@ fun ExtractTextScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -157,22 +157,22 @@ fun ExtractTextScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
                             FileItemCard(
                                 fileName = selectedFile!!.name,
                                 fileSize = selectedFile!!.formattedSize,
-                                onRemove = { 
+                                onRemove = {
                                     selectedFile = null
                                     hasExtractableText = null
                                     previewText = ""
                                 }
                             )
                         }
-                        
+
                         // Text availability status
                         item {
                             Card(
@@ -228,7 +228,7 @@ fun ExtractTextScreen(
                                 }
                             }
                         }
-                        
+
                         // Preview
                         if (previewText.isNotEmpty()) {
                             item {
@@ -239,7 +239,7 @@ fun ExtractTextScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
+
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
@@ -255,7 +255,7 @@ fun ExtractTextScreen(
                                 }
                             }
                         }
-                        
+
                         // Options
                         item {
                             Text(
@@ -265,7 +265,7 @@ fun ExtractTextScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -300,7 +300,7 @@ fun ExtractTextScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -323,7 +323,7 @@ fun ExtractTextScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -358,7 +358,7 @@ fun ExtractTextScreen(
             }
         }
     }
-    
+
     // Result dialog
     if (showResult) {
         ResultDialog(

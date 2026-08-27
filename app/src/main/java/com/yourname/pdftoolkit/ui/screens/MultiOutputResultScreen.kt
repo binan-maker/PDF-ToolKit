@@ -53,7 +53,7 @@ fun MultiOutputResultScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+
     // Build file items list
     val fileItems = remember(outputUris) {
         outputUris.mapIndexed { index, uri ->
@@ -66,7 +66,7 @@ fun MultiOutputResultScreen(
             )
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -95,20 +95,20 @@ fun MultiOutputResultScreen(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Text(
-                        text = if (isImageOutput) 
-                            "All images have been saved to your gallery" 
-                        else 
+                        text = if (isImageOutput)
+                            "All images have been saved to your gallery"
+                        else
                             "All PDFs have been saved to the output folder",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Open all button
                     OutlinedButton(
                         onClick = {
@@ -117,7 +117,7 @@ fun MultiOutputResultScreen(
                                     FileOpener.openMultipleImages(context, outputUris)
                                 } else {
                                     // For PDFs, open the first one
-                                    outputUris.firstOrNull()?.let { 
+                                    outputUris.firstOrNull()?.let {
                                         FileOpener.openPdf(context, it)
                                     }
                                 }
@@ -131,11 +131,11 @@ fun MultiOutputResultScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (isImageOutput) "Open All in Gallery" 
+                            if (isImageOutput) "Open All in Gallery"
                             else "Open First PDF"
                         )
                     }
-                    
+
                     // Share all button
                     OutlinedButton(
                         onClick = { shareMultipleFiles(context, outputUris) },
@@ -150,14 +150,14 @@ fun MultiOutputResultScreen(
                     }
                 }
             }
-            
+
             // File list
             if (isImageOutput) {
                 // Grid layout for images
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -176,7 +176,7 @@ fun MultiOutputResultScreen(
                 // List layout for PDFs
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     itemsIndexed(
@@ -231,9 +231,9 @@ private fun PdfOutputCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             // File info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -248,7 +248,7 @@ private fun PdfOutputCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             // Action buttons
             Row {
                 IconButton(onClick = onShare) {
@@ -258,7 +258,7 @@ private fun PdfOutputCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 IconButton(onClick = onOpen) {
                     Icon(
                         imageVector = Icons.Default.OpenInNew,
@@ -306,7 +306,7 @@ private fun ImageOutputCard(
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
-                    
+
                     // Index badge
                     Surface(
                         shape = MaterialTheme.shapes.small,
@@ -325,9 +325,9 @@ private fun ImageOutputCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // File name
             Text(
                 text = item.name,
@@ -337,7 +337,7 @@ private fun ImageOutputCard(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            
+
             Text(
                 text = item.size,
                 style = MaterialTheme.typography.labelSmall,
@@ -345,9 +345,9 @@ private fun ImageOutputCard(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -360,7 +360,7 @@ private fun ImageOutputCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 IconButton(onClick = onShare) {
                     Icon(
                         imageVector = Icons.Default.Share,
@@ -395,7 +395,7 @@ private fun shareFile(context: android.content.Context, uri: Uri) {
  */
 private fun shareMultipleFiles(context: android.content.Context, uris: List<Uri>) {
     if (uris.isEmpty()) return
-    
+
     try {
         val shareIntent = if (uris.size == 1) {
             Intent(Intent.ACTION_SEND).apply {
@@ -409,7 +409,7 @@ private fun shareMultipleFiles(context: android.content.Context, uris: List<Uri>
             }
         }
         shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        
+
         val chooser = Intent.createChooser(shareIntent, "Share files")
         context.startActivity(chooser)
     } catch (e: Exception) {

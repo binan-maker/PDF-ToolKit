@@ -39,16 +39,16 @@ import kotlinx.coroutines.launch
 class FillFormsViewModel : ViewModel() {
     private val _state = MutableStateFlow(FillFormsUiState())
     val state: StateFlow<FillFormsUiState> = _state.asStateFlow()
-    
+
     private val formFiller = PdfFormFiller()
-    
+
     fun setSourcePdf(uri: Uri, name: String, context: android.content.Context) {
         _state.value = _state.value.copy(
-            sourceUri = uri, 
+            sourceUri = uri,
             sourceName = name,
             isAnalyzing = true
         )
-        
+
         if (_state.value.isProcessing) return
         viewModelScope.launch {
             val result = formFiller.analyzeForm(context, uri)
@@ -60,7 +60,7 @@ class FillFormsViewModel : ViewModel() {
                 fillableFields = result.fillableFields,
                 analyzeError = result.errorMessage
             )
-            
+
             // Initialize field values
             val initialValues = mutableMapOf<String, String>()
             result.fields.forEach { field ->
@@ -76,33 +76,33 @@ class FillFormsViewModel : ViewModel() {
             _state.value = _state.value.copy(fieldValues = initialValues)
         }
     }
-    
+
     fun updateFieldValue(fieldName: String, value: String) {
         val updatedValues = _state.value.fieldValues.toMutableMap()
         updatedValues[fieldName] = value
         _state.value = _state.value.copy(fieldValues = updatedValues)
     }
-    
+
     fun toggleFlatten() {
         _state.value = _state.value.copy(flattenAfterFill = !_state.value.flattenAfterFill)
     }
-    
+
     fun fillForm(
         context: android.content.Context,
         outputUri: Uri
     ) {
         val sourceUri = _state.value.sourceUri ?: return
-        
+
         if (_state.value.isProcessing) return
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             // Convert string values to FieldValue objects
             val fieldValues = mutableMapOf<String, FieldValue>()
-            
+
             _state.value.fields.forEach { field ->
                 val value = _state.value.fieldValues[field.name] ?: return@forEach
-                
+
                 val fieldValue: FieldValue? = when (field) {
                     is FormField.TextField -> FieldValue.Text(value)
                     is FormField.CheckBoxField -> FieldValue.CheckBox(value == "true")
@@ -111,12 +111,12 @@ class FillFormsViewModel : ViewModel() {
                     is FormField.ListBoxField -> FieldValue.ListValue(listOf(value))
                     else -> null
                 }
-                
+
                 if (fieldValue != null) {
                     fieldValues[field.name] = fieldValue
                 }
             }
-            
+
             val result = formFiller.fillForm(
                 context = context,
                 inputUri = sourceUri,
@@ -127,11 +127,11 @@ class FillFormsViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             if (result.success) {
                 com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, outputUri)
             }
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result.success,
@@ -141,7 +141,7 @@ class FillFormsViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         _state.value = FillFormsUiState()
     }
@@ -178,7 +178,7 @@ fun FillFormsScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -191,13 +191,13 @@ fun FillFormsScreen(
             viewModel.setSourcePdf(it, name, context)
         }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { viewModel.fillForm(context, it) }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -215,7 +215,7 @@ fun FillFormsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Source PDF Selection
             Card(
@@ -233,7 +233,7 @@ fun FillFormsScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     if (state.sourceUri != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -274,7 +274,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // Analyzing State
             AnimatedVisibility(visible = state.isAnalyzing) {
                 Card(
@@ -293,7 +293,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // No Form Found
             AnimatedVisibility(visible = !state.isAnalyzing && state.sourceUri != null && !state.hasForm) {
                 Card(
@@ -326,7 +326,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // No Editable Fields Validation Gap
             AnimatedVisibility(visible = !state.isAnalyzing && state.sourceUri != null && state.hasForm && state.fillableFields == 0) {
                 Card(
@@ -376,7 +376,7 @@ fun FillFormsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         LazyColumn(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -392,7 +392,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // Options
             AnimatedVisibility(visible = state.hasForm) {
                 Card(
@@ -425,7 +425,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // Processing State
             AnimatedVisibility(visible = state.isProcessing) {
                 Card(
@@ -448,7 +448,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // Success State
             AnimatedVisibility(visible = state.isComplete && !state.isProcessing) {
                 Card(
@@ -490,7 +490,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // Error State
             state.error?.let { error ->
                 Card(
@@ -513,7 +513,7 @@ fun FillFormsScreen(
                     }
                 }
             }
-            
+
             // Fill Button
             Button(
                 onClick = {
@@ -527,7 +527,7 @@ fun FillFormsScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.fill_save_filled))
             }
-            
+
             // Reset Button
             if (state.isComplete) {
                 OutlinedButton(
@@ -565,7 +565,7 @@ private fun FormFieldInput(
                 leadingIcon = { Icon(Icons.Default.TextFields, contentDescription = null) }
             )
         }
-        
+
         is FormField.CheckBoxField -> {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -579,7 +579,7 @@ private fun FormFieldInput(
                 Text(field.name)
             }
         }
-        
+
         is FormField.RadioButtonField -> {
             Column {
                 Text(
@@ -602,10 +602,10 @@ private fun FormFieldInput(
                 }
             }
         }
-        
+
         is FormField.ComboBoxField -> {
             var expanded by remember { mutableStateOf(false) }
-            
+
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = it }
@@ -620,7 +620,7 @@ private fun FormFieldInput(
                     readOnly = !field.isEditable,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
                 )
-                
+
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
@@ -637,10 +637,10 @@ private fun FormFieldInput(
                 }
             }
         }
-        
+
         is FormField.ListBoxField -> {
             var expanded by remember { mutableStateOf(false) }
-            
+
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = it }
@@ -655,7 +655,7 @@ private fun FormFieldInput(
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
                 )
-                
+
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
@@ -672,7 +672,7 @@ private fun FormFieldInput(
                 }
             }
         }
-        
+
         else -> {
             // Unsupported field type
         }

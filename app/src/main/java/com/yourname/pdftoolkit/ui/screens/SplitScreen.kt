@@ -75,7 +75,7 @@ fun SplitScreen(
     val scope = rememberCoroutineScope()
     val pdfSplitter = remember { PdfSplitter() }
     val organizer = remember { PdfOrganizer() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var pageCount by remember { mutableStateOf(0) }
@@ -91,15 +91,15 @@ fun SplitScreen(
     var resultUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showMultiOutputScreen by remember { mutableStateOf(false) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // Visual Split Selection State
     var pages by remember { mutableStateOf<List<ReorderablePage>>(emptyList()) }
     var isLoadingThumbnails by remember { mutableStateOf(false) }
     var selectedVisualPages by remember { mutableStateOf<Set<Int>>(emptySet()) }
-    
+
     // Sequential background-threaded thumbnail loading for Visual Split
 
-    
+
     // File picker launcher - with PDF MIME type filter
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -113,14 +113,14 @@ fun SplitScreen(
             }
             val fileInfo = FileManager.getFileInfo(context, uri)
             selectedFile = fileInfo
-            
+
             scope.launch {
                 pageCount = pdfSplitter.getPageCount(context, uri)
                 endPage = pageCount.toString()
             }
         }
     }
-    
+
     // Save file launcher (for custom location - only for single output modes)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -149,20 +149,20 @@ fun SplitScreen(
             )
         }
     }
-    
+
     // Function to split with default location
     fun splitWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
             val originalFile = selectedFile!!
-            
+
             // Handle ALL_PAGES mode separately to create multiple files
             if (selectedMode == SplitMode.ALL_PAGES) {
                 val outputUris = mutableListOf<Uri>()
                 var success = false
                 var message = ""
-                
+
                 val result = withContext(Dispatchers.IO) {
                     try {
                         val splitResult = pdfSplitter.splitAllPages(
@@ -172,7 +172,7 @@ fun SplitScreen(
                                 // Save each page to a separate file
                                 val fileName = "${originalFile.name.removeSuffix(".pdf")}_page_$pageNumber.pdf"
                                 val outputFileResult = OutputFolderManager.createOutputStream(context, fileName)
-                                
+
                                 if (outputFileResult != null) {
                                     inputStream.copyTo(outputFileResult.outputStream)
                                     outputFileResult.outputStream.close()
@@ -182,7 +182,7 @@ fun SplitScreen(
                             },
                             onProgress = { progress = it }
                         )
-                        
+
                         splitResult.fold(
                             onSuccess = { splitStats ->
                                 success = true
@@ -198,11 +198,11 @@ fun SplitScreen(
                         message = e.message ?: "Split failed"
                     }
                 }
-                
+
                 resultSuccess = success
                 resultMessage = message
                 resultUris = outputUris
-                
+
                 // Record in history with multiple outputs
                 if (success && outputUris.isNotEmpty()) {
                     HistoryManager.recordSuccess(
@@ -222,7 +222,7 @@ fun SplitScreen(
                         errorMessage = message
                     )
                 }
-                
+
                 isProcessing = false
                 if (success && outputUris.size > 1) {
                     showMultiOutputScreen = true
@@ -235,7 +235,7 @@ fun SplitScreen(
                     try {
                         val fileName = FileManager.generateOutputFileName("split")
                         val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                        
+
                         if (outputResult != null) {
                             val file = selectedFile!!
                             val pages = when (selectedMode) {
@@ -248,7 +248,7 @@ fun SplitScreen(
                                 SplitMode.VISUAL_SELECT -> selectedVisualPages.toList().sorted()
                                 SplitMode.ALL_PAGES -> (1..pageCount).toList() // Won't reach here
                             }
-                            
+
                             val splitResult = pdfSplitter.extractPages(
                                 context = context,
                                 inputUri = file.uri,
@@ -256,9 +256,9 @@ fun SplitScreen(
                                 outputStream = outputResult.outputStream,
                                 onProgress = { progress = it }
                             )
-                            
+
                             outputResult.outputStream.close()
-                            
+
                             splitResult.fold(
                                 onSuccess = { count ->
                                     Triple(true, "Successfully extracted $count pages\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", listOf(outputResult.outputFile.contentUri))
@@ -275,11 +275,11 @@ fun SplitScreen(
                         Triple(false, e.message ?: "Split failed", emptyList())
                     }
                 }
-                
+
                 resultSuccess = result.first
                 resultMessage = result.second
                 resultUris = result.third
-                
+
                 // Record in history
                 if (resultSuccess && result.third.isNotEmpty()) {
                     HistoryManager.recordSuccess(
@@ -299,13 +299,13 @@ fun SplitScreen(
                         errorMessage = result.second
                     )
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -345,7 +345,7 @@ fun SplitScreen(
                             pageCount = pageCount,
                             onRemove = { selectedFile = null }
                         )
-                        
+
                         // Compact mode switcher row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -367,7 +367,7 @@ fun SplitScreen(
                                 Text(stringResource(R.string.split_switch_mode), style = MaterialTheme.typography.bodySmall)
                             }
                         }
-                        
+
                         // Shortcuts Bar
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -395,7 +395,7 @@ fun SplitScreen(
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        
+
                         // Grid of page previews
                         Box(
                             modifier = Modifier
@@ -416,7 +416,7 @@ fun SplitScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
-                        
+
                         // Save location selector
                         SaveLocationSelector(
                             useCustomLocation = useCustomLocation,
@@ -429,8 +429,8 @@ fun SplitScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
@@ -440,7 +440,7 @@ fun SplitScreen(
                                 onRemove = { selectedFile = null }
                             )
                         }
-                        
+
                         // Split mode selection
                         item {
                             Text(
@@ -450,7 +450,7 @@ fun SplitScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -464,7 +464,7 @@ fun SplitScreen(
                                 }
                             }
                         }
-                        
+
                         // Mode-specific options
                         item {
                             when (selectedMode) {
@@ -513,7 +513,7 @@ fun SplitScreen(
                                 else -> {} // Should not be reached since VISUAL_SELECT is handled separately
                             }
                         }
-                        
+
                         // Save location option
                         item {
                             SaveLocationSelector(
@@ -523,7 +523,7 @@ fun SplitScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -552,7 +552,7 @@ fun SplitScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -586,7 +586,7 @@ fun SplitScreen(
                             }
                             SplitMode.ALL_PAGES -> "$pageCount files"
                         }
-                        
+
                         ActionButton(
                             text = "Split ($pageInfo)",
                             onClick = {
@@ -606,14 +606,14 @@ fun SplitScreen(
             }
         }
     }
-    
+
     // Result dialog with View option (for single output)
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Split Complete" else "Split Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUris = emptyList()
             },
@@ -623,14 +623,14 @@ fun SplitScreen(
             actionText = stringResource(R.string.action_open_pdf)
         )
     }
-    
+
     // Multi-output result screen (for ALL_PAGES mode)
     if (showMultiOutputScreen && resultUris.isNotEmpty()) {
         MultiOutputResultScreen(
             title = stringResource(R.string.split_all_pages_title),
             outputUris = resultUris,
             isImageOutput = false,
-            onNavigateBack = { 
+            onNavigateBack = {
                 showMultiOutputScreen = false
                 resultUris = emptyList()
                 selectedFile = null
@@ -658,7 +658,7 @@ private fun performSplit(
     scope.launch {
         onProcessing(true)
         onProgress(0f)
-        
+
         val outputStream = context.contentResolver.openOutputStream(outputUri)
         if (outputStream != null) {
             val pages = when (selectedMode) {
@@ -671,7 +671,7 @@ private fun performSplit(
                 SplitMode.VISUAL_SELECT -> selectedVisualPages.toList().sorted()
                 SplitMode.ALL_PAGES -> (1..pageCount).toList()
             }
-            
+
             val result = pdfSplitter.extractPages(
                 context = context,
                 inputUri = file.uri,
@@ -679,9 +679,9 @@ private fun performSplit(
                 outputStream = outputStream,
                 onProgress = onProgress
             )
-            
+
             outputStream.close()
-            
+
             result.fold(
                 onSuccess = { count ->
                     onResult(true, "Successfully extracted $count pages", listOf(outputUri))
@@ -693,7 +693,7 @@ private fun performSplit(
         } else {
             onResult(false, "Cannot create output file", emptyList())
         }
-        
+
         onProcessing(false)
     }
 }
@@ -768,7 +768,7 @@ private fun RangeInput(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium
             )
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -782,9 +782,9 @@ private fun RangeInput(
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
-                
+
                 Text("to", style = MaterialTheme.typography.bodyMedium)
-                
+
                 OutlinedTextField(
                     value = endPage,
                     onValueChange = onEndChange,
@@ -835,9 +835,9 @@ private fun SpecificPagesInput(
  */
 private fun parsePageNumbers(input: String, maxPages: Int): List<Int> {
     if (input.isBlank()) return emptyList()
-    
+
     val pages = mutableSetOf<Int>()
-    
+
     input.split(",").forEach { part ->
         val trimmed = part.trim()
         if (trimmed.contains("-")) {
@@ -856,7 +856,7 @@ private fun parsePageNumbers(input: String, maxPages: Int): List<Int> {
             }
         }
     }
-    
+
     return pages.sorted()
 }
 

@@ -44,7 +44,7 @@ fun SecurityScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val securityManager = remember { PdfSecurityManager() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var password by remember { mutableStateOf("") }
@@ -60,7 +60,7 @@ fun SecurityScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -69,7 +69,7 @@ fun SecurityScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
         }
     }
-    
+
     // Save file launcher (for custom location)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -79,7 +79,7 @@ fun SecurityScreen(
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 val outputStream = context.contentResolver.openOutputStream(outputUri)
                 if (outputStream != null) {
                     val options = PdfSecurityOptions(
@@ -88,7 +88,7 @@ fun SecurityScreen(
                         allowCopying = allowCopying,
                         allowModifying = allowModifying
                     )
-                    
+
                     val result = securityManager.encryptPdf(
                         context = context,
                         inputUri = file.uri,
@@ -96,9 +96,9 @@ fun SecurityScreen(
                         options = options,
                         onProgress = { progress = it }
                     )
-                    
+
                     outputStream.close()
-                    
+
                     result.fold(
                         onSuccess = {
                             resultSuccess = true
@@ -117,26 +117,26 @@ fun SecurityScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to protect with default location
     fun protectWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
                     val baseName = file.name.removeSuffix(".pdf")
                     val fileName = "${baseName}_protected.pdf"
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val options = PdfSecurityOptions(
                             password = password,
@@ -144,7 +144,7 @@ fun SecurityScreen(
                             allowCopying = allowCopying,
                             allowModifying = allowModifying
                         )
-                        
+
                         val encryptResult = securityManager.encryptPdf(
                             context = context,
                             inputUri = file.uri,
@@ -152,9 +152,9 @@ fun SecurityScreen(
                             options = options,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         encryptResult.fold(
                             onSuccess = {
                                 Triple(true, "PDF protected successfully!\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
@@ -171,7 +171,7 @@ fun SecurityScreen(
                     Triple(false, e.message ?: "Encryption failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -184,7 +184,7 @@ fun SecurityScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -216,8 +216,8 @@ fun SecurityScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
@@ -227,7 +227,7 @@ fun SecurityScreen(
                                 onRemove = { selectedFile = null }
                             )
                         }
-                        
+
                         // Password section
                         item {
                             Text(
@@ -237,7 +237,7 @@ fun SecurityScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -249,7 +249,7 @@ fun SecurityScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     // Password field
                                     OutlinedTextField(
@@ -257,7 +257,7 @@ fun SecurityScreen(
                                         onValueChange = { password = it },
                                         label = { Text(stringResource(R.string.label_password)) },
                                         placeholder = { Text(stringResource(R.string.pdf_password_hint)) },
-                                        supportingText = { 
+                                        supportingText = {
                                             Text(stringResource(R.string.security_password_info))
                                         },
                                         visualTransformation = if (showPassword) {
@@ -284,7 +284,7 @@ fun SecurityScreen(
                                         singleLine = true,
                                         isError = password.isNotEmpty() && password.length < 4
                                     )
-                                    
+
                                     // Confirm password field
                                     OutlinedTextField(
                                         value = confirmPassword,
@@ -309,7 +309,7 @@ fun SecurityScreen(
                                 }
                             }
                         }
-                        
+
                         // Permissions section
                         item {
                             Text(
@@ -319,7 +319,7 @@ fun SecurityScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -336,18 +336,18 @@ fun SecurityScreen(
                                         checked = allowPrinting,
                                         onCheckedChange = { allowPrinting = it }
                                     )
-                                    
+
                                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                                    
+
                                     PermissionItem(
                                         title = stringResource(R.string.security_allow_copying),
                                         icon = Icons.Default.ContentCopy,
                                         checked = allowCopying,
                                         onCheckedChange = { allowCopying = it }
                                     )
-                                    
+
                                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                                    
+
                                     PermissionItem(
                                         title = stringResource(R.string.security_allow_editing),
                                         icon = Icons.Default.Edit,
@@ -357,7 +357,7 @@ fun SecurityScreen(
                                 }
                             }
                         }
-                        
+
                         // Save location option
                         item {
                             SaveLocationSelector(
@@ -367,7 +367,7 @@ fun SecurityScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -390,7 +390,7 @@ fun SecurityScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -429,14 +429,14 @@ fun SecurityScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Protection Added" else "Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },
@@ -466,16 +466,16 @@ private fun PermissionItem(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
-        
+
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange

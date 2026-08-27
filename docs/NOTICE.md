@@ -1,7 +1,7 @@
 # NOTICE
 
-PDF Toolkit
-Copyright 2024-2025 PDF Toolkit Contributors
+Paperly
+Copyright 2024-2025 Paperly Contributors
 
 This product includes software developed by third parties.
 

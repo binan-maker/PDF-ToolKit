@@ -8,15 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,7 +30,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.yourname.pdftoolkit.BuildConfig
-import com.yourname.pdftoolkit.ui.components.HistorySidebar
 import com.yourname.pdftoolkit.ui.screens.PdfViewerScreen
 import com.yourname.pdftoolkit.ui.screens.*
 import kotlinx.coroutines.Dispatchers
@@ -54,19 +47,19 @@ import java.io.IOException
 private fun cleanPdfCache(context: android.content.Context) {
     val cacheDir = File(context.cacheDir, "pdf_cache")
     if (!cacheDir.exists()) return
-    
+
     // Reduced from 50MB to 20MB to prevent large PDFs from filling entire cache
     // and to encourage cleanup of older cached files
     val maxCacheSizeMb = 20L
     val maxCacheSizeBytes = maxCacheSizeMb * 1024 * 1024
-    
+
     val files = cacheDir.listFiles()
         ?.filter { it.isFile && it.name.endsWith(".pdf") }
         ?.sortedBy { it.lastModified() } // oldest first
         ?: return
-    
+
     var totalSize = files.sumOf { it.length() }
-    
+
     // Aggressively delete old files if over limit
     for (file in files) {
         if (totalSize <= maxCacheSizeBytes) break
@@ -74,7 +67,7 @@ private fun cleanPdfCache(context: android.content.Context) {
         file.delete()
         android.util.Log.d("AppNavigation", "Deleted old cache file: ${file.name} (totalCacheSize: ${totalSize / 1024 / 1024}MB)")
     }
-    
+
     // Also clean up any cache files older than 12 hours for additional cleanup
     val cutoffTime = System.currentTimeMillis() - (12 * 60 * 60 * 1000) // 12 hours
     files.filter { it.lastModified() < cutoffTime }.forEach { oldFile ->
@@ -83,7 +76,7 @@ private fun cleanPdfCache(context: android.content.Context) {
     }
 }
 
-private fun safeNavigate(
+fun safeNavigate(
     navController: NavHostController,
     route: String?,
     navOptions: (androidx.navigation.NavOptionsBuilder.() -> Unit)? = null
@@ -106,7 +99,7 @@ private fun safeNavigate(
     }
 }
 
-private fun navigateToPdfViewer(
+fun navigateToPdfViewer(
     navController: NavHostController,
     uri: Uri?,
     name: String?
@@ -167,19 +160,19 @@ private suspend fun normalizeUriToCache(context: android.content.Context, uri: U
         try {
             // Clean cache before adding new file
             cleanPdfCache(context)
-            
+
             val cacheDir = File(context.cacheDir, "pdf_cache")
             if (!cacheDir.exists()) cacheDir.mkdirs()
 
             // Generate unique filename based on URI for potential reuse
             val uriHash = uri.toString().hashCode().toLong().toString(16)
             val cacheFile = File(cacheDir, "pdf_${uriHash}.pdf")
-            
+
             // Check if valid cached copy already exists (same size as source)
             val sourceSize = try {
                 context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: -1L
             } catch (e: Exception) { -1L }
-            
+
             if (cacheFile.exists() && sourceSize > 0 && cacheFile.length() == sourceSize) {
                 android.util.Log.d("AppNavigation", "Reusing existing cache file: ${cacheFile.name}")
                 sessionCacheRef.value = cacheFile
@@ -253,7 +246,7 @@ private suspend fun normalizeUriToCache(context: android.content.Context, uri: U
                     // For media documents, try to get a fresh URI via query
                     val docId = android.provider.DocumentsContract.getDocumentId(uri)
                     val freshUri = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, docId)
-                    
+
                     if (freshUri != null && freshUri != uri) {
                         android.util.Log.d("AppNavigation", "Trying fresh URI: $freshUri")
                         try {
@@ -318,7 +311,7 @@ fun AppNavigation(
         initialPdfUri != null -> "pdf_viewer_direct"
         else -> startDestination
     }
-    
+
     // Handle dynamic URI changes (e.g., from onNewIntent)
     LaunchedEffect(initialPdfUri) {
         if (initialPdfUri != null) {
@@ -330,65 +323,37 @@ fun AppNavigation(
             }
         }
     }
-    
+
     // Track current route
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    
+
     // Bottom bar is shown only on main tabs
     val showBottomBar = currentRoute in listOf(
         Screen.Tools.route,
         Screen.Files.route
     )
-    
+
     // Top bar is shown only on main tabs
     val showTopBar = currentRoute in listOf(
         Screen.Tools.route,
         Screen.Files.route
     )
-    
-    // History sidebar state
-    var isHistorySidebarOpen by remember { mutableStateOf(false) }
 
     // Snackbar for URI errors
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     // Track session cache file for cleanup when viewer closes
     val sessionCacheFile = remember { mutableStateOf<File?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            if (showTopBar) {
-                TopAppBar(
-                    navigationIcon = {
-                        IconButton(onClick = { isHistorySidebarOpen = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.nav_open_history)
-                            )
-                        }
-                    },
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // App Icon
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PictureAsPdf,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(6.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                if (showTopBar) {
+                    TopAppBar(
+                        title = {
                             Text(
                                 text = when (currentRoute) {
                                     Screen.Tools.route -> stringResource(R.string.app_name)
@@ -398,380 +363,371 @@ fun AppNavigation(
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                safeNavigate(navController, Screen.Settings.route)
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    safeNavigate(navController, Screen.Settings.route)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = stringResource(R.string.settings_title)
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.settings_title)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
-                )
+                }
+            },
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = showBottomBar,
+                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                ) {
+                    BottomNavigationBar(
+                        navController = navController,
+                        currentRoute = currentRoute
+                    )
+                }
             }
-        },
-        bottomBar = {
-            AnimatedVisibility(
-                visible = showBottomBar,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = actualStartDestination,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                BottomNavigationBar(
-                    navController = navController,
-                    currentRoute = currentRoute
-                )
-            }
-        }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = actualStartDestination,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Main Tabs
-            composable(Screen.Tools.route) {
-                ToolsScreen(
-                    onNavigateToScreen = { screen ->
-                        safeNavigate(navController, screen.route)
-                    },
-                    onNavigateToRoute = { route ->
-                        safeNavigate(navController, route)
-                    },
-                    onOpenPdfViewer = { uri, name ->
-                        navigateToPdfViewer(navController, uri, name)
-                    }
-                )
-            }
-            
-            composable(Screen.Files.route) {
-                FilesScreen(
-                    onOpenPdfViewer = { uri, name ->
-                        navigateToPdfViewer(navController, uri, name)
-                    }
-                )
-            }
-            
-            composable(Screen.Settings.route) {
-                SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            // PDF Viewer with URI parameters - Always uses Legacy viewer for full annotation support
-            composable(
-                route = Screen.PdfViewer.route,
-                arguments = listOf(
-                    navArgument("uri") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("name") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = "PDF Document"
-                    }
-                )
-            ) { backStackEntry ->
-                val uriString = backStackEntry.arguments?.getString("uri") ?: ""
-                val name = backStackEntry.arguments?.getString("name") ?: "PDF Document"
-                val rawUri = if (uriString.isNotEmpty()) Uri.parse(Uri.decode(uriString)) else null
-
-                // URI normalization state
-                var normalizedUri by remember(rawUri) { mutableStateOf<Uri?>(null) }
-                var isNormalizing by remember { mutableStateOf(rawUri != null) }
-
-                LaunchedEffect(rawUri) {
-                    if (rawUri != null) {
-                        isNormalizing = true
-                        normalizedUri = normalizeUriToCache(context, rawUri, snackbarHostState, sessionCacheFile)
-                        isNormalizing = false
-                    } else {
-                        normalizedUri = null
-                    }
-                }
-                
-                // Cleanup cache file when leaving viewer
-                DisposableEffect(Unit) {
-                    onDispose {
-                        sessionCacheFile.value?.let { cacheFile ->
-                            if (cacheFile.exists()) {
-                                cacheFile.delete()
-                                android.util.Log.d("AppNavigation", "Deleted session cache file: ${cacheFile.name}")
-                            }
-                            sessionCacheFile.value = null
+                // Main Tabs
+                composable(Screen.Tools.route) {
+                    ToolsScreen(
+                        onNavigateToScreen = { screen ->
+                            safeNavigate(navController, screen.route)
+                        },
+                        onNavigateToRoute = { route ->
+                            safeNavigate(navController, route)
+                        },
+                        onOpenPdfViewer = { uri, name ->
+                            navigateToPdfViewer(navController, uri, name)
                         }
-                    }
+                    )
                 }
 
-                // Show loading while normalizing
-                if (isNormalizing) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                    return@composable
+                composable(Screen.Files.route) {
+                    FilesScreen(
+                        onOpenPdfViewer = { uri, name ->
+                            navigateToPdfViewer(navController, uri, name)
+                        }
+                    )
                 }
 
-                if (rawUri != null && normalizedUri == null) {
+                composable(Screen.Settings.route) {
+                    SettingsScreen(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                // PDF Viewer with URI parameters - Always uses Legacy viewer for full annotation support
+                composable(
+                    route = Screen.PdfViewer.route,
+                    arguments = listOf(
+                        navArgument("uri") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("name") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = "PDF Document"
+                        }
+                    )
+                ) { backStackEntry ->
+                    val uriString = backStackEntry.arguments?.getString("uri") ?: ""
+                    val name = backStackEntry.arguments?.getString("name") ?: "PDF Document"
+                    val rawUri = if (uriString.isNotEmpty()) Uri.parse(Uri.decode(uriString)) else null
+
+                    // URI normalization state
+                    var normalizedUri by remember(rawUri) { mutableStateOf<Uri?>(null) }
+                    var isNormalizing by remember { mutableStateOf(rawUri != null) }
+
                     LaunchedEffect(rawUri) {
-                        navController.popBackStack()
+                        if (rawUri != null) {
+                            isNormalizing = true
+                            normalizedUri = normalizeUriToCache(context, rawUri, snackbarHostState, sessionCacheFile)
+                            isNormalizing = false
+                        } else {
+                            normalizedUri = null
+                        }
                     }
-                    return@composable
-                }
 
-                PdfViewerScreen(
-                    pdfUri = normalizedUri,
-                    pdfName = Uri.decode(name),
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToTool = { tool, toolUri, toolName ->
-                        navigateToPdfTool(navController, tool, toolUri, toolName)
-                    }
-                )
-            }
-
-            // Direct PDF viewer for intent handling - Always uses Legacy viewer
-            composable("pdf_viewer_direct") {
-                // URI normalization state for initialPdfUri
-                var normalizedUri by remember(initialPdfUri) { mutableStateOf<Uri?>(null) }
-                var isNormalizing by remember { mutableStateOf(initialPdfUri != null) }
-
-                // Track session cache file for cleanup when viewer closes
-                val directSessionCacheFile = remember { mutableStateOf<File?>(null) }
-                
-                LaunchedEffect(initialPdfUri) {
-                    if (initialPdfUri != null) {
-                        isNormalizing = true
-                        normalizedUri = normalizeUriToCache(context, initialPdfUri, snackbarHostState, directSessionCacheFile)
-                        isNormalizing = false
-                    } else {
-                        normalizedUri = null
-                    }
-                }
-                
-                // Cleanup cache file when leaving viewer
-                DisposableEffect(Unit) {
-                    onDispose {
-                        directSessionCacheFile.value?.let { cacheFile ->
-                            if (cacheFile.exists()) {
-                                cacheFile.delete()
-                                android.util.Log.d("AppNavigation", "Deleted session cache file: ${cacheFile.name}")
+                    // Cleanup cache file when leaving viewer
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            sessionCacheFile.value?.let { cacheFile ->
+                                if (cacheFile.exists()) {
+                                    cacheFile.delete()
+                                    android.util.Log.d("AppNavigation", "Deleted session cache file: ${cacheFile.name}")
+                                }
+                                sessionCacheFile.value = null
                             }
-                            directSessionCacheFile.value = null
                         }
                     }
-                }
 
-                // Show loading while normalizing
-                if (isNormalizing) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                    // Show loading while normalizing
+                    if (isNormalizing) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                        return@composable
                     }
-                    return@composable
+
+                    if (rawUri != null && normalizedUri == null) {
+                        LaunchedEffect(rawUri) {
+                            navController.popBackStack()
+                        }
+                        return@composable
+                    }
+
+                    PdfViewerScreen(
+                        pdfUri = normalizedUri,
+                        pdfName = Uri.decode(name),
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToTool = { tool, toolUri, toolName ->
+                            navigateToPdfTool(navController, tool, toolUri, toolName)
+                        }
+                    )
                 }
 
-                if (initialPdfUri != null && normalizedUri == null) {
+                // Direct PDF viewer for intent handling - Always uses Legacy viewer
+                composable("pdf_viewer_direct") {
+                    // URI normalization state for initialPdfUri
+                    var normalizedUri by remember(initialPdfUri) { mutableStateOf<Uri?>(null) }
+                    var isNormalizing by remember { mutableStateOf(initialPdfUri != null) }
+
+                    // Track session cache file for cleanup when viewer closes
+                    val directSessionCacheFile = remember { mutableStateOf<File?>(null) }
+
                     LaunchedEffect(initialPdfUri) {
-                        safeNavigate(navController, Screen.Tools.route) {
-                            popUpTo("pdf_viewer_direct") { inclusive = true }
+                        if (initialPdfUri != null) {
+                            isNormalizing = true
+                            normalizedUri = normalizeUriToCache(context, initialPdfUri, snackbarHostState, directSessionCacheFile)
+                            isNormalizing = false
+                        } else {
+                            normalizedUri = null
                         }
                     }
-                    return@composable
-                }
 
-                PdfViewerScreen(
-                    pdfUri = normalizedUri,
-                    pdfName = initialPdfName ?: "PDF Document",
-                    onNavigateBack = {
-                        safeNavigate(navController, Screen.Tools.route) {
-                            popUpTo("pdf_viewer_direct") { inclusive = true }
+                    // Cleanup cache file when leaving viewer
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            directSessionCacheFile.value?.let { cacheFile ->
+                                if (cacheFile.exists()) {
+                                    cacheFile.delete()
+                                    android.util.Log.d("AppNavigation", "Deleted session cache file: ${cacheFile.name}")
+                                }
+                                directSessionCacheFile.value = null
+                            }
                         }
-                    },
-                    onNavigateToTool = { tool, toolUri, toolName ->
-                        navigateToPdfTool(navController, tool, toolUri, toolName)
                     }
-                )
-            }
+
+                    // Show loading while normalizing
+                    if (isNormalizing) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                        return@composable
+                    }
+
+                    if (initialPdfUri != null && normalizedUri == null) {
+                        LaunchedEffect(initialPdfUri) {
+                            safeNavigate(navController, Screen.Tools.route) {
+                                popUpTo("pdf_viewer_direct") { inclusive = true }
+                            }
+                        }
+                        return@composable
+                    }
+
+                    PdfViewerScreen(
+                        pdfUri = normalizedUri,
+                        pdfName = initialPdfName ?: "PDF Document",
+                        onNavigateBack = {
+                            safeNavigate(navController, Screen.Tools.route) {
+                                popUpTo("pdf_viewer_direct") { inclusive = true }
+                            }
+                        },
+                        onNavigateToTool = { tool, toolUri, toolName ->
+                            navigateToPdfTool(navController, tool, toolUri, toolName)
+                        }
+                    )
+                }
 
 
-            // PDF Tool Screens
-            composable(Screen.Merge.route) {
-                MergeScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Split.route) {
-                SplitScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(
-                route = "compress?uri={uri}&name={name}",
-                arguments = listOf(
-                    navArgument("uri") { 
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("name") { 
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
+                // PDF Tool Screens
+                composable(Screen.Merge.route) {
+                    MergeScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Split.route) {
+                    SplitScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(
+                    route = "compress?uri={uri}&name={name}",
+                    arguments = listOf(
+                        navArgument("uri") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("name") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { backStackEntry ->
+                    val uriString = backStackEntry.arguments?.getString("uri") ?: ""
+                    val name = backStackEntry.arguments?.getString("name") ?: ""
+                    val uri = if (uriString.isNotEmpty()) Uri.parse(uriString) else null
+
+                    CompressScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        initialUri = uri,
+                        initialName = if (name.isNotEmpty()) Uri.decode(name) else null
+                    )
+                }
+
+                composable(Screen.Convert.route) {
+                    ConvertScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.PdfToImage.route) {
+                    PdfToImageScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Extract.route) {
+                    ExtractScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Rotate.route) {
+                    RotateScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Security.route) {
+                    SecurityScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Metadata.route) {
+                    MetadataScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.PageNumber.route) {
+                    PageNumberScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Organize.route) {
+                    OrganizeScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Reorder.route) {
+                    ReorderScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Unlock.route) {
+                    UnlockScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Repair.route) {
+                    RepairScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.HtmlToPdf.route) {
+                    HtmlToPdfScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.ExtractText.route) {
+                    ExtractTextScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(
+                    route = "watermark?uri={uri}&name={name}",
+                    arguments = listOf(
+                        navArgument("uri") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("name") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { backStackEntry ->
+                    val uriString = backStackEntry.arguments?.getString("uri") ?: ""
+                    val name = backStackEntry.arguments?.getString("name") ?: ""
+                    val uri = if (uriString.isNotEmpty()) Uri.parse(uriString) else null
+
+                    WatermarkScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        initialUri = uri,
+                        initialName = if (name.isNotEmpty()) Uri.decode(name) else null
+                    )
+                }
+
+                composable(Screen.Flatten.route) {
+                    FlattenScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.SignPdf.route) {
+                    SignPdfScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.FillForms.route) {
+                    FillFormsScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Annotate.route) {
+                    AnnotationScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.ScanToPdf.route) {
+                    ScanToPdfScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                // OCR screen - only available in Play Store flavor
+                if (BuildConfig.HAS_OCR) {
+                    composable(Screen.Ocr.route) {
+                        OcrScreen(onNavigateBack = { navController.popBackStack() })
                     }
-                )
-            ) { backStackEntry ->
-                val uriString = backStackEntry.arguments?.getString("uri") ?: ""
-                val name = backStackEntry.arguments?.getString("name") ?: ""
-                val uri = if (uriString.isNotEmpty()) Uri.parse(uriString) else null
-                
-                CompressScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    initialUri = uri,
-                    initialName = if (name.isNotEmpty()) Uri.decode(name) else null
-                )
-            }
-            
-            composable(Screen.Convert.route) {
-                ConvertScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.PdfToImage.route) {
-                PdfToImageScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Extract.route) {
-                ExtractScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Rotate.route) {
-                RotateScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Security.route) {
-                SecurityScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Metadata.route) {
-                MetadataScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.PageNumber.route) {
-                PageNumberScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Organize.route) {
-                OrganizeScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Reorder.route) {
-                ReorderScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Unlock.route) {
-                UnlockScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Repair.route) {
-                RepairScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.HtmlToPdf.route) {
-                HtmlToPdfScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.ExtractText.route) {
-                ExtractTextScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(
-                route = "watermark?uri={uri}&name={name}",
-                arguments = listOf(
-                    navArgument("uri") { 
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("name") { 
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
-            ) { backStackEntry ->
-                val uriString = backStackEntry.arguments?.getString("uri") ?: ""
-                val name = backStackEntry.arguments?.getString("name") ?: ""
-                val uri = if (uriString.isNotEmpty()) Uri.parse(uriString) else null
-                
-                WatermarkScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    initialUri = uri,
-                    initialName = if (name.isNotEmpty()) Uri.decode(name) else null
-                )
-            }
-            
-            composable(Screen.Flatten.route) {
-                FlattenScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.SignPdf.route) {
-                SignPdfScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.FillForms.route) {
-                FillFormsScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.Annotate.route) {
-                AnnotationScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            composable(Screen.ScanToPdf.route) {
-                ScanToPdfScreen(onNavigateBack = { navController.popBackStack() })
-            }
-            
-            // OCR screen - only available in Play Store flavor
-            if (BuildConfig.HAS_OCR) {
-                composable(Screen.Ocr.route) {
-                    OcrScreen(onNavigateBack = { navController.popBackStack() })
+                }
+
+                composable(
+                    route = Screen.ImageTools.route,
+                    arguments = listOf(
+                        navArgument("operation") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = "resize"
+                        }
+                    )
+                ) { backStackEntry ->
+                    val operation = backStackEntry.arguments?.getString("operation") ?: "resize"
+                    ImageToolsScreen(
+                        initialOperation = operation,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
                 }
             }
-            
-            composable(
-                route = Screen.ImageTools.route,
-                arguments = listOf(
-                    navArgument("operation") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = "resize"
-                    }
-                )
-            ) { backStackEntry ->
-                val operation = backStackEntry.arguments?.getString("operation") ?: "resize"
-                ImageToolsScreen(
-                    initialOperation = operation,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
         }
-    }
-    
-    // History Sidebar overlay
-    HistorySidebar(
-        isOpen = isHistorySidebarOpen,
-        onClose = { isHistorySidebarOpen = false },
-        onOpenFile = { uri ->
-            isHistorySidebarOpen = false
-            // Navigate to PDF viewer with the file
-            navigateToPdfViewer(navController, uri, "PDF Document")
-        }
-    )
+
     } // End Box
+}@Composable fun HtmlToPdfScreen(onNavigateBack: () -> Boolean) {
+TODO("Not yet implemented")
 }
 
 /**
@@ -788,11 +744,11 @@ private fun BottomNavigationBar(
                 BottomNavTab.TOOLS -> currentRoute == Screen.Tools.route
                 BottomNavTab.FILES -> currentRoute == Screen.Files.route
             }
-            
+
             val tabTitle = getTabTitle(tab)
-            
+
             NavigationBarItem(
-                icon = { 
+                icon = {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tabTitle
@@ -805,7 +761,7 @@ private fun BottomNavigationBar(
                         BottomNavTab.TOOLS -> Screen.Tools.route
                         BottomNavTab.FILES -> Screen.Files.route
                     }
-                    
+
                     safeNavigate(navController, targetRoute) {
                         // Pop up to start destination to avoid building up a stack
                         popUpTo(navController.graph.findStartDestination().id) {

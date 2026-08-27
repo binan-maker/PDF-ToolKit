@@ -62,12 +62,12 @@ import java.util.concurrent.Executors
 class ScanToPdfViewModel : ViewModel() {
     private val _state = MutableStateFlow(ScanToPdfUiState())
     val state: StateFlow<ScanToPdfUiState> = _state.asStateFlow()
-    
+
     fun addImage(uri: Uri) {
         val updatedImages = _state.value.selectedImages + uri
         _state.value = _state.value.copy(selectedImages = updatedImages)
     }
-    
+
     fun removeImage(index: Int) {
         val updatedImages = _state.value.selectedImages.toMutableList()
         if (index in updatedImages.indices) {
@@ -75,31 +75,31 @@ class ScanToPdfViewModel : ViewModel() {
             _state.value = _state.value.copy(selectedImages = updatedImages)
         }
     }
-    
+
     fun clearImages() {
         _state.value = _state.value.copy(selectedImages = emptyList())
     }
-    
+
     fun setPageSize(size: ScanPageSize) {
         _state.value = _state.value.copy(pageSize = size)
     }
-    
+
     fun setColorMode(mode: ScanColorMode) {
         _state.value = _state.value.copy(colorMode = mode)
     }
-    
+
     fun setQuality(quality: ScanQuality) {
         _state.value = _state.value.copy(quality = quality)
     }
-    
+
     fun toggleEnhanceContrast() {
         _state.value = _state.value.copy(enhanceContrast = !_state.value.enhanceContrast)
     }
-    
+
     fun setShowCamera(show: Boolean) {
         _state.value = _state.value.copy(showCamera = show)
     }
-    
+
     fun replaceImage(index: Int, newUri: Uri) {
         val updatedImages = _state.value.selectedImages.toMutableList()
         if (index in updatedImages.indices) {
@@ -107,17 +107,17 @@ class ScanToPdfViewModel : ViewModel() {
             _state.value = _state.value.copy(selectedImages = updatedImages)
         }
     }
-    
+
     fun createPdf(
         context: android.content.Context,
         outputUri: Uri
     ) {
         if (_state.value.selectedImages.isEmpty()) return
-        
+
         if (_state.value.isProcessing) return
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             val scanner = PdfScanner(context)
             val config = ScanConfig(
                 pageSize = _state.value.pageSize,
@@ -125,7 +125,7 @@ class ScanToPdfViewModel : ViewModel() {
                 quality = _state.value.quality,
                 enhanceContrast = _state.value.enhanceContrast
             )
-            
+
             val result = scanner.imagesToPdf(
                 imageUris = _state.value.selectedImages,
                 outputUri = outputUri,
@@ -134,10 +134,10 @@ class ScanToPdfViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             if (result.success) {
                 com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, outputUri)
-                
+
                 // Record in history
                 com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
                     context = context,
@@ -166,7 +166,7 @@ class ScanToPdfViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         _state.value = ScanToPdfUiState()
     }
@@ -200,13 +200,13 @@ fun ScanToPdfScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
-    
+
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
-    
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -215,22 +215,22 @@ fun ScanToPdfScreen(
             viewModel.setShowCamera(true)
         }
     }
-    
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         uris.forEach { uri -> viewModel.addImage(uri) }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { viewModel.createPdf(context, it) }
     }
-    
+
     // Crop state
     var cropImageIndex by remember { mutableStateOf(-1) }
-    
+
     // Crop launcher
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -243,7 +243,7 @@ fun ScanToPdfScreen(
         }
         cropImageIndex = -1
     }
-    
+
     if (state.showCamera && hasCameraPermission) {
         CameraScreen(
             onImageCaptured = { uri ->
@@ -271,7 +271,7 @@ fun ScanToPdfScreen(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Image Source Selection
                 Card(
@@ -289,7 +289,7 @@ fun ScanToPdfScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -308,7 +308,7 @@ fun ScanToPdfScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(stringResource(R.string.scan_camera))
                             }
-                            
+
                             OutlinedButton(
                                 onClick = { imagePickerLauncher.safeLaunch(arrayOf("image/*"), context) },
                                 modifier = Modifier.weight(1f)
@@ -320,7 +320,7 @@ fun ScanToPdfScreen(
                         }
                     }
                 }
-                
+
                 // Selected Images
                 if (state.selectedImages.isNotEmpty()) {
                     Card(
@@ -347,7 +347,7 @@ fun ScanToPdfScreen(
                                     Text(stringResource(R.string.action_clear_all))
                                 }
                             }
-                            
+
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
@@ -374,7 +374,7 @@ fun ScanToPdfScreen(
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop
                                         )
-                                        
+
                                         // Page number badge
                                         Badge(
                                             modifier = Modifier
@@ -383,7 +383,7 @@ fun ScanToPdfScreen(
                                         ) {
                                             Text("${index + 1}")
                                         }
-                                        
+
                                         // Crop button
                                         IconButton(
                                             onClick = {
@@ -411,7 +411,7 @@ fun ScanToPdfScreen(
                                                 modifier = Modifier.size(14.dp)
                                             )
                                         }
-                                        
+
                                         // Delete button
                                         IconButton(
                                             onClick = { viewModel.removeImage(index) },
@@ -436,7 +436,7 @@ fun ScanToPdfScreen(
                         }
                     }
                 }
-                
+
                 // Scan Settings
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -453,7 +453,7 @@ fun ScanToPdfScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        
+
                         // Page Size
                         Text(stringResource(R.string.scan_page_size), style = MaterialTheme.typography.bodyMedium)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -465,7 +465,7 @@ fun ScanToPdfScreen(
                                 )
                             }
                         }
-                        
+
                         // Color Mode
                         Text(stringResource(R.string.scan_color_mode), style = MaterialTheme.typography.bodyMedium)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -477,7 +477,7 @@ fun ScanToPdfScreen(
                                 )
                             }
                         }
-                        
+
                         // Quality
                         Text(stringResource(R.string.label_quality), style = MaterialTheme.typography.bodyMedium)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -489,7 +489,7 @@ fun ScanToPdfScreen(
                                 )
                             }
                         }
-                        
+
                         // Enhance Contrast
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -503,7 +503,7 @@ fun ScanToPdfScreen(
                         }
                     }
                 }
-                
+
                 // Processing State
                 AnimatedVisibility(visible = state.isProcessing) {
                     Card(
@@ -526,7 +526,7 @@ fun ScanToPdfScreen(
                         }
                     }
                 }
-                
+
                 // Success State
                 AnimatedVisibility(visible = state.isComplete && !state.isProcessing) {
                     Card(
@@ -559,7 +559,7 @@ fun ScanToPdfScreen(
                         }
                     }
                 }
-                
+
                 // Open PDF Button (shown after success)
                 if (state.isComplete && state.resultUri != null) {
                     Button(
@@ -575,7 +575,7 @@ fun ScanToPdfScreen(
                         Text(stringResource(R.string.action_open_pdf))
                     }
                 }
-                
+
                 // Error State
                 state.error?.let { error ->
                     Card(
@@ -598,9 +598,9 @@ fun ScanToPdfScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Create PDF Button
                 Button(
                     onClick = {
@@ -614,7 +614,7 @@ fun ScanToPdfScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.scan_create_pdf))
                 }
-                
+
                 // Reset Button
                 if (state.isComplete) {
                     OutlinedButton(
@@ -641,29 +641,29 @@ private fun CameraScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    
+
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { ctx ->
                 PreviewView(ctx).apply {
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    
+
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
-                        
+
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(surfaceProvider)
                         }
-                        
+
                         imageCapture = ImageCapture.Builder()
                             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                             .build()
-                        
+
                         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                        
+
                         try {
                             cameraProvider.unbindAll()
                             cameraProvider.bindToLifecycle(
@@ -680,7 +680,7 @@ private fun CameraScreen(
             },
             modifier = Modifier.fillMaxSize()
         )
-        
+
         // Controls
         Row(
             modifier = Modifier
@@ -697,7 +697,7 @@ private fun CameraScreen(
             ) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.action_close))
             }
-            
+
             // Capture button
             FloatingActionButton(
                 onClick = {
@@ -705,9 +705,9 @@ private fun CameraScreen(
                         context.cacheDir,
                         "capture_${System.currentTimeMillis()}.jpg"
                     )
-                    
+
                     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-                    
+
                     imageCapture?.takePicture(
                         outputOptions,
                         cameraExecutor,
@@ -715,7 +715,7 @@ private fun CameraScreen(
                             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                                 onImageCaptured(Uri.fromFile(photoFile))
                             }
-                            
+
                             override fun onError(exception: ImageCaptureException) {
                                 // Handle capture error
                             }
@@ -731,7 +731,7 @@ private fun CameraScreen(
                     modifier = Modifier.size(32.dp)
                 )
             }
-            
+
             // Placeholder for symmetry
             Spacer(modifier = Modifier.size(56.dp))
         }

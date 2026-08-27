@@ -42,7 +42,7 @@ fun PageNumberScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pageNumberer = remember { PdfPageNumberer() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var position by remember { mutableStateOf(PageNumberPosition.BOTTOM_RIGHT) }
@@ -56,7 +56,7 @@ fun PageNumberScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -65,7 +65,7 @@ fun PageNumberScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
         }
     }
-    
+
     // Save file launcher (for custom location)
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -73,18 +73,18 @@ fun PageNumberScreen(
         uri?.let { saveUri ->
             resultUri = saveUri
             val file = selectedFile ?: return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 val options = PageNumberOptions(
                     position = position,
                     format = format,
                     fontSize = fontSize,
                     startPage = startPage
                 )
-                
+
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     val result = pageNumberer.addPageNumbers(
                         context = context,
@@ -93,7 +93,7 @@ fun PageNumberScreen(
                         options = options,
                         onProgress = { progress = it }
                     )
-                    
+
                     result.fold(
                         onSuccess = { count ->
                             resultSuccess = true
@@ -109,26 +109,26 @@ fun PageNumberScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to add page numbers with default location
     fun addNumbersWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
                     val baseName = file.name.removeSuffix(".pdf")
                     val fileName = "${baseName}_numbered.pdf"
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val options = PageNumberOptions(
                             position = position,
@@ -136,7 +136,7 @@ fun PageNumberScreen(
                             fontSize = fontSize,
                             startPage = startPage
                         )
-                        
+
                         val pageResult = pageNumberer.addPageNumbers(
                             context = context,
                             inputUri = file.uri,
@@ -144,9 +144,9 @@ fun PageNumberScreen(
                             options = options,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         pageResult.fold(
                             onSuccess = { count ->
                                 Triple(true, "Successfully added page numbers to $count pages\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
@@ -163,7 +163,7 @@ fun PageNumberScreen(
                     Triple(false, e.message ?: "Failed to add page numbers", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -174,7 +174,7 @@ fun PageNumberScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -206,8 +206,8 @@ fun PageNumberScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         // Selected file info
                         item {
@@ -217,7 +217,7 @@ fun PageNumberScreen(
                                 onRemove = { selectedFile = null }
                             )
                         }
-                        
+
                         // Position selection
                         item {
                             Text(
@@ -227,7 +227,7 @@ fun PageNumberScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -237,19 +237,19 @@ fun PageNumberScreen(
                                     FilterChip(
                                         selected = position == pos,
                                         onClick = { position = pos },
-                                        label = { 
+                                        label = {
                                             Text(
                                                 pos.name.replace("_", " ").lowercase()
                                                     .replaceFirstChar { it.uppercase() },
                                                 style = MaterialTheme.typography.labelSmall
-                                            ) 
+                                            )
                                         },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
                         }
-                        
+
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -259,19 +259,19 @@ fun PageNumberScreen(
                                     FilterChip(
                                         selected = position == pos,
                                         onClick = { position = pos },
-                                        label = { 
+                                        label = {
                                             Text(
                                                 pos.name.replace("_", " ").lowercase()
                                                     .replaceFirstChar { it.uppercase() },
                                                 style = MaterialTheme.typography.labelSmall
-                                            ) 
+                                            )
                                         },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
                         }
-                        
+
                         // Format selection
                         item {
                             Text(
@@ -281,7 +281,7 @@ fun PageNumberScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -293,7 +293,7 @@ fun PageNumberScreen(
                                         PageNumberFormat.PREFIXED -> "Page 1, Page 2..."
                                         PageNumberFormat.PREFIXED_WITH_TOTAL -> "Page 1 of 5..."
                                     }
-                                    
+
                                     FilterChip(
                                         selected = format == fmt,
                                         onClick = { format = fmt },
@@ -303,7 +303,7 @@ fun PageNumberScreen(
                                 }
                             }
                         }
-                        
+
                         // Font size slider
                         item {
                             Card(
@@ -333,9 +333,9 @@ fun PageNumberScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     Slider(
                                         value = fontSize,
                                         onValueChange = { fontSize = it },
@@ -345,7 +345,7 @@ fun PageNumberScreen(
                                 }
                             }
                         }
-                        
+
                         // Start page
                         item {
                             Card(
@@ -366,7 +366,7 @@ fun PageNumberScreen(
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Medium
                                     )
-                                    
+
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -392,7 +392,7 @@ fun PageNumberScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -415,7 +415,7 @@ fun PageNumberScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -440,9 +440,9 @@ fun PageNumberScreen(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = "Add Page Numbers",
                             onClick = {
@@ -461,14 +461,14 @@ fun PageNumberScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Success" else "Error",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

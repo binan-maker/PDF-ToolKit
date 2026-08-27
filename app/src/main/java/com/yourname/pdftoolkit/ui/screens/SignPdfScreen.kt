@@ -61,17 +61,17 @@ import java.io.FileOutputStream
 class SignPdfViewModel : ViewModel() {
     private val _state = MutableStateFlow(SignPdfUiState())
     val state: StateFlow<SignPdfUiState> = _state.asStateFlow()
-    
+
     fun setSourcePdf(uri: Uri, name: String) {
         _state.value = _state.value.copy(sourceUri = uri, sourceName = name)
     }
-    
+
     fun addPathPoint(x: Float, y: Float) {
         val currentPath = _state.value.currentPath.toMutableList()
         currentPath.add(SignaturePoint(x, y))
         _state.value = _state.value.copy(currentPath = currentPath)
     }
-    
+
     fun finishCurrentPath() {
         if (_state.value.currentPath.isNotEmpty()) {
             val currentPaths = _state.value.signaturePaths.toMutableList()
@@ -82,22 +82,22 @@ class SignPdfViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun clearSignature() {
         _state.value = _state.value.copy(
             signaturePaths = emptyList(),
             currentPath = emptyList()
         )
     }
-    
+
     fun setPageIndex(index: Int) {
         _state.value = _state.value.copy(pageIndex = index)
     }
-    
+
     fun setSignaturePosition(x: Float, y: Float) {
         _state.value = _state.value.copy(signatureX = x, signatureY = y)
     }
-    
+
     fun setSignatureSize(width: Float, height: Float) {
         _state.value = _state.value.copy(signatureWidth = width, signatureHeight = height)
     }
@@ -110,40 +110,40 @@ class SignPdfViewModel : ViewModel() {
             signatureHeight = height
         )
     }
-    
+
     fun toggleAddDate() {
         _state.value = _state.value.copy(addDate = !_state.value.addDate)
     }
-    
+
     fun toggleAddName() {
         _state.value = _state.value.copy(addName = !_state.value.addName)
     }
-    
+
     fun setName(name: String) {
         _state.value = _state.value.copy(signerName = name)
     }
-    
+
     fun signPdf(
         context: android.content.Context,
         outputUri: Uri
     ) {
         val currentState = _state.value
         val sourceUri = currentState.sourceUri ?: return
-        
+
         if (currentState.signaturePaths.isEmpty()) return
-        
+
         if (_state.value.isProcessing) return
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, progress = 0, error = null)
-            
+
             val signer = PdfSigner(context)
-            
+
             val signatureData = SignatureData(
                 paths = currentState.signaturePaths,
                 strokeWidth = 3f,
                 strokeColor = Color.BLACK
             )
-            
+
             val placement = SignaturePlacement(
                 pageIndex = currentState.pageIndex,
                 x = currentState.signatureX,
@@ -151,13 +151,13 @@ class SignPdfViewModel : ViewModel() {
                 width = currentState.signatureWidth,
                 height = currentState.signatureHeight
             )
-            
+
             val extras = SignatureExtras(
                 addDate = currentState.addDate,
                 addName = currentState.addName,
                 name = currentState.signerName
             )
-            
+
             val result = signer.addSignature(
                 inputUri = sourceUri,
                 outputUri = outputUri,
@@ -168,7 +168,7 @@ class SignPdfViewModel : ViewModel() {
                     _state.value = _state.value.copy(progress = progress)
                 }
             )
-            
+
             _state.value = _state.value.copy(
                 isProcessing = false,
                 isComplete = result.success,
@@ -177,7 +177,7 @@ class SignPdfViewModel : ViewModel() {
             )
         }
     }
-    
+
     fun reset() {
         _state.value = SignPdfUiState()
     }
@@ -325,7 +325,7 @@ fun SignPdfScreen(
     var dragStart by remember { mutableStateOf<Offset?>(null) }
     var dragEnd by remember { mutableStateOf<Offset?>(null) }
     val latestPagePreview by rememberUpdatedState(pagePreview)
-    
+
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -338,7 +338,7 @@ fun SignPdfScreen(
             viewModel.setSourcePdf(it, name)
         }
     }
-    
+
     val saveDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
@@ -370,7 +370,7 @@ fun SignPdfScreen(
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -389,7 +389,7 @@ fun SignPdfScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Source PDF Selection
             Card(
@@ -407,7 +407,7 @@ fun SignPdfScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     if (state.sourceUri != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -440,7 +440,7 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             // Signature Pad
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -468,7 +468,7 @@ fun SignPdfScreen(
                             Text(stringResource(R.string.action_clear))
                         }
                     }
-                    
+
                     // Signature Canvas
                     Box(
                         modifier = Modifier
@@ -502,12 +502,12 @@ fun SignPdfScreen(
                                     val path = Path()
                                     val firstPoint = signaturePath.points.first()
                                     path.moveTo(firstPoint.x, firstPoint.y)
-                                    
+
                                     for (i in 1 until signaturePath.points.size) {
                                         val point = signaturePath.points[i]
                                         path.lineTo(point.x, point.y)
                                     }
-                                    
+
                                     drawPath(
                                         path = path,
                                         color = androidx.compose.ui.graphics.Color.Black,
@@ -519,18 +519,18 @@ fun SignPdfScreen(
                                     )
                                 }
                             }
-                            
+
                             // Draw current path
                             if (state.currentPath.size > 1) {
                                 val path = Path()
                                 val firstPoint = state.currentPath.first()
                                 path.moveTo(firstPoint.x, firstPoint.y)
-                                
+
                                 for (i in 1 until state.currentPath.size) {
                                     val point = state.currentPath[i]
                                     path.lineTo(point.x, point.y)
                                 }
-                                
+
                                 drawPath(
                                     path = path,
                                     color = androidx.compose.ui.graphics.Color.Black,
@@ -542,7 +542,7 @@ fun SignPdfScreen(
                                 )
                             }
                         }
-                        
+
                         // Placeholder text
                         if (state.signaturePaths.isEmpty() && state.currentPath.isEmpty()) {
                             Text(
@@ -555,7 +555,7 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             // Signature Placement
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -572,7 +572,7 @@ fun SignPdfScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     // Page Selection
                     OutlinedTextField(
                         value = (state.pageIndex + 1).toString(),
@@ -748,7 +748,7 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             // Additional Options
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -765,7 +765,7 @@ fun SignPdfScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -776,7 +776,7 @@ fun SignPdfScreen(
                             onCheckedChange = { viewModel.toggleAddDate() }
                         )
                     }
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -787,7 +787,7 @@ fun SignPdfScreen(
                             onCheckedChange = { viewModel.toggleAddName() }
                         )
                     }
-                    
+
                     AnimatedVisibility(visible = state.addName) {
                         OutlinedTextField(
                             value = state.signerName,
@@ -799,7 +799,7 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             // Processing State
             AnimatedVisibility(visible = state.isProcessing) {
                 Card(
@@ -822,7 +822,7 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             // Success State
             AnimatedVisibility(visible = state.isComplete && !state.isProcessing) {
                 Card(
@@ -859,7 +859,7 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             // Error State
             state.error?.let { error ->
                 Card(
@@ -882,9 +882,9 @@ fun SignPdfScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Sign Button
             Button(
                 onClick = {
@@ -892,15 +892,15 @@ fun SignPdfScreen(
                     saveDocumentLauncher.safeLaunch(fileName, context)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = state.sourceUri != null && 
-                         state.signaturePaths.isNotEmpty() &&
-                         !state.isProcessing
+                enabled = state.sourceUri != null &&
+                        state.signaturePaths.isNotEmpty() &&
+                        !state.isProcessing
             ) {
                 Icon(Icons.Default.Draw, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.tool_sign_pdf))
             }
-            
+
             // Reset Button
             if (state.isComplete) {
                 OutlinedButton(

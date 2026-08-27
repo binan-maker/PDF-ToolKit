@@ -73,7 +73,7 @@ data class ToolItem(
 ) {
     @Composable
     fun getTitle(): String = stringResource(titleResId)
-    
+
     @Composable
     fun getDescription(): String = stringResource(descResId)
 }
@@ -91,7 +91,7 @@ fun ToolsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+
     /**
      * Copy content URI to app cache for reliable access.
      * This is critical for picker URIs that lose permission quickly.
@@ -100,16 +100,16 @@ fun ToolsScreen(
         try {
             val cacheDir = File(context.cacheDir, "viewer_cache")
             if (!cacheDir.exists()) cacheDir.mkdirs()
-            
+
             val tempFile = File(cacheDir, "pdf_${System.currentTimeMillis()}.pdf")
-            
+
             // Try to copy the file
             context.contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(tempFile).use { output ->
                     input.copyTo(output)
                 }
             } ?: return@withContext null
-            
+
             // Return file:// URI for direct file access
             Uri.fromFile(tempFile)
         } catch (e: Exception) {
@@ -117,7 +117,7 @@ fun ToolsScreen(
             null
         }
     }
-    
+
     /**
      * PDF picker using SAF (ACTION_OPEN_DOCUMENT).
      * Immediately copies picked file to cache before opening to avoid permission issues.
@@ -130,7 +130,7 @@ fun ToolsScreen(
                 // Take persistable URI permission immediately
                 val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
                 val persistedFile = SafUriManager.addRecentFile(context, selectedUri, flags)
-                
+
                 val name = persistedFile?.name?.substringBeforeLast('.') ?: run {
                     var displayName = "PDF Document"
                     context.contentResolver.query(selectedUri, null, null, null, null)?.use { c ->
@@ -143,7 +143,7 @@ fun ToolsScreen(
                     }
                     displayName
                 }
-                
+
                 // CRITICAL: Copy to cache before opening to avoid permission expiration
                 val cachedUri = copyUriToCache(context, selectedUri)
                 if (cachedUri != null) {
@@ -155,15 +155,15 @@ fun ToolsScreen(
             }
         }
     }
-    
+
     val allTools = getAllTools()
-    
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         // Subtitle
         item {
@@ -173,7 +173,7 @@ fun ToolsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
+
         // Sections
         ToolSection.entries.forEach { section ->
             val sectionTools = allTools.filter { it.section == section }
@@ -181,7 +181,7 @@ fun ToolsScreen(
                 item {
                     SectionHeader(title = getSectionTitle(section))
                 }
-                
+
                 item {
                     ToolGrid(
                         tools = sectionTools,
@@ -206,7 +206,7 @@ fun ToolsScreen(
                 }
             }
         }
-        
+
         // Bottom spacing
         item {
             Spacer(modifier = Modifier.height(80.dp))
@@ -256,7 +256,7 @@ private fun ToolGrid(
 ) {
     // Use a 3-column grid for compact display
     val rows = tools.chunked(3)
-    
+
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -289,17 +289,17 @@ private fun ToolCard(
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(Unit) {
         isVisible = true
     }
-    
+
     val scale by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0.9f,
         animationSpec = tween(durationMillis = 200),
         label = "tool_card_scale"
     )
-    
+
     Card(
         onClick = onClick,
         modifier = modifier
@@ -331,9 +331,9 @@ private fun ToolCard(
                         .size(24.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = tool.getTitle(),
                 style = MaterialTheme.typography.labelMedium,
@@ -394,7 +394,7 @@ fun getAllTools(): List<ToolItem> = listOf(
         section = ToolSection.QUICK_ACTIONS,
         screen = Screen.Convert
     ),
-    
+
     // SECTION 2: ORGANIZE
     ToolItem(
         id = "reorder",
@@ -428,7 +428,7 @@ fun getAllTools(): List<ToolItem> = listOf(
         section = ToolSection.ORGANIZE,
         screen = Screen.Extract
     ),
-    
+
     // SECTION 3: CONVERT (PDF-CENTRIC)
     ToolItem(
         id = "html_to_pdf",
@@ -462,7 +462,7 @@ fun getAllTools(): List<ToolItem> = listOf(
         section = ToolSection.CONVERT,
         screen = Screen.ExtractText
     ),
-    
+
     // SECTION 4: SECURITY
     ToolItem(
         id = "lock",
@@ -512,7 +512,7 @@ fun getAllTools(): List<ToolItem> = listOf(
         section = ToolSection.SECURITY,
         screen = Screen.Flatten
     ),
-    
+
     // SECTION 5: IMAGE TOOLS (LOW-BLOAT ONLY)
     ToolItem(
         id = "image_compress",
@@ -546,7 +546,7 @@ fun getAllTools(): List<ToolItem> = listOf(
         section = ToolSection.IMAGE_TOOLS,
         screen = Screen.ImageTools
     ),
-    
+
     // SECTION 6: VIEW & EXPORT
     ToolItem(
         id = "view_pdf",

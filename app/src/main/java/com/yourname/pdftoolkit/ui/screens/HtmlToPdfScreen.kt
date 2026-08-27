@@ -4,234 +4,291 @@ import com.yourname.pdftoolkit.util.safeLaunch
 import androidx.compose.ui.res.stringResource
 import com.yourname.pdftoolkit.R
 
+import android.content.ContentValues
+import android.content.Intent
 import android.net.Uri
-import android.webkit.URLUtil
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.domain.operations.HtmlToPdfConverter
+import com.yourname.pdftoolkit.data.FileManager
 import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.yourname.pdftoolkit.ui.screens.DefaultImageFormat
+import com.yourname.pdftoolkit.ui.screens.SettingsPreferences
+import com.yourname.pdftoolkit.util.CacheManager
+import com.yourname.pdftoolkit.util.ImageProcessor
+import com.yourname.pdftoolkit.util.OutputFormat
+import com.yourname.pdftoolkit.util.ResolutionPreset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
 
 /**
- * Screen for converting HTML/URLs to PDF.
+ * Image tool operation types.
+ */
+enum class ImageOperation(val title: String, val description: String) {
+    RESIZE("Resize", "Change image dimensions"),
+    COMPRESS("Compress", "Reduce file size"),
+    CONVERT("Convert", "Change image format"),
+    STRIP_METADATA("Strip Metadata", "Remove EXIF data")
+}
+
+/**
+ * Screen for low-bloat image tools.
+ * Features: Resize, Compress, Format Conversion, Metadata Stripping.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HtmlToPdfScreen(
+fun ImageToolsScreen(
+    initialOperation: String = "resize",
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val converter = remember { HtmlToPdfConverter() }
-    
-    val hasNetworkUrlSupport = com.yourname.pdftoolkit.BuildConfig.HAS_NETWORK_URL_TO_PDF
+
+    // Map string to enum
+    val startOperation = when (initialOperation.lowercase()) {
+        "compress" -> ImageOperation.COMPRESS
+        "convert" -> ImageOperation.CONVERT
+        "strip_metadata" -> ImageOperation.STRIP_METADATA
+        else -> ImageOperation.RESIZE
+    }
 
     // State
-    var inputMode by remember {
-        mutableStateOf(if (hasNetworkUrlSupport) InputMode.URL else InputMode.HTML)
-    }
-    var urlInput by remember { mutableStateOf("") }
-    var htmlInput by remember { mutableStateOf("") }
+    var selectedImages by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var selectedOperation by rememberSaveable { mutableStateOf(startOperation) }
     var isProcessing by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
     var showResult by remember { mutableStateOf(false) }
     var resultSuccess by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf("") }
-    var useCustomLocation by remember { mutableStateOf(false) }
-    var resultUri by remember { mutableStateOf<Uri?>(null) }
-    
-    val isInputValid = when (inputMode) {
-        InputMode.URL -> urlInput.isNotBlank() && 
-            (urlInput.startsWith("http://") || urlInput.startsWith("https://"))
-        InputMode.HTML -> htmlInput.isNotBlank()
-    }
-    
-    // Save file launcher (for custom location)
-    val saveFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/pdf")
-    ) { uri ->
-        uri?.let { saveUri ->
-            scope.launch {
-                isProcessing = true
-                progress = 0f
-                
-                context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
-                    val result = when (inputMode) {
-                        InputMode.URL -> converter.convertUrlToPdf(
-                            context = context,
-                            url = urlInput,
-                            outputStream = outputStream,
-                            onProgress = { progress = it }
-                        )
-                        InputMode.HTML -> converter.convertHtmlToPdf(
-                            context = context,
-                            htmlContent = htmlInput,
-                            outputStream = outputStream,
-                            onProgress = { progress = it }
-                        )
-                    }
-                    
-                    result.fold(
-                        onSuccess = { conversionResult ->
-                            resultSuccess = true
-                            resultUri = saveUri
-                            resultMessage = "PDF created successfully!\n\nPages: ${conversionResult.pageCount}"
-                            
-                            // Add to recent files
-                            com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, saveUri)
-                            
-                            // Record in history
-                            scope.launch {
-                                com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
-                                    context = context,
-                                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
-                                    inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
-                                    outputFileUri = saveUri,
-                                    outputFileName = "html_to_pdf.pdf",
-                                    details = "Converted to PDF with ${conversionResult.pageCount} pages"
-                                )
-                            }
-                            
-                            urlInput = ""
-                            htmlInput = ""
-                        },
-                        onFailure = { error ->
-                            resultSuccess = false
-                            resultMessage = error.message ?: "Conversion failed"
-                            
-                            // Record failure in history
-                            scope.launch {
-                                com.yourname.pdftoolkit.data.HistoryManager.recordFailure(
-                                    context = context,
-                                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
-                                    inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
-                                    errorMessage = error.message
-                                )
-                            }
-                        }
-                    )
-                } ?: run {
-                    resultSuccess = false
-                    resultMessage = "Cannot create output file"
-                }
-                
-                isProcessing = false
-                showResult = true
-            }
+
+    // Resize settings
+    var selectedPreset by remember { mutableStateOf(ResolutionPreset.HD) }
+    var customWidth by remember { mutableStateOf("1280") }
+    var customHeight by remember { mutableStateOf("720") }
+    var useCustomSize by remember { mutableStateOf(false) }
+    var maintainAspectRatio by remember { mutableStateOf(true) }
+
+    // Compress settings
+    var compressionQuality by remember { mutableStateOf(75f) }
+
+    // Convert settings
+    var targetFormat by remember { mutableStateOf(
+        when (SettingsPreferences.getDefaultImageFormat(context)) {
+            DefaultImageFormat.WEBP -> OutputFormat.WEBP
+            DefaultImageFormat.JPEG -> OutputFormat.JPEG
+        }
+    ) }
+
+    // Image picker launcher
+    val pickImagesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            selectedImages = uris
         }
     }
-    
-    // Function to convert with default location
-    fun convertWithDefaultLocation() {
+
+    // Open gallery function
+    fun openGallery() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                type = "image/*"
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
+    // Save processed image to gallery
+    suspend fun saveToGallery(inputFile: File, baseName: String, format: OutputFormat): Uri? =
+        withContext(Dispatchers.IO) {
+            try {
+                val mimeType = format.mimeType
+                val extension = format.extension
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.Images.Media.DISPLAY_NAME, "${baseName}.${extension}")
+                        put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/PDF Toolkit")
+                        put(MediaStore.Images.Media.IS_PENDING, 1)
+                    }
+
+                    val uri = context.contentResolver.insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        contentValues
+                    ) ?: return@withContext null
+
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        FileInputStream(inputFile).use { inputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    }
+
+                    contentValues.clear()
+                    contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    context.contentResolver.update(uri, contentValues, null, null)
+
+                    uri
+                } else {
+                    @Suppress("DEPRECATION")
+                    val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                    val appDir = File(picturesDir, "PDF Toolkit")
+                    if (!appDir.exists()) appDir.mkdirs()
+
+                    val destFile = File(appDir, "${baseName}.${extension}")
+                    inputFile.copyTo(destFile, overwrite = true)
+
+                    val values = ContentValues().apply {
+                        put(MediaStore.Images.Media.DATA, destFile.absolutePath)
+                        put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                    }
+                    context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+                    Uri.fromFile(destFile)
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    // Process images
+    fun processImages() {
+        if (selectedImages.isEmpty()) return
+
         scope.launch {
             isProcessing = true
             progress = 0f
-            
-            val result = withContext(Dispatchers.IO) {
-                try {
-                    val fileName = when (inputMode) {
-                        InputMode.URL -> {
-                            val domain = try {
-                                java.net.URL(urlInput).host.replace("www.", "")
-                            } catch (e: Exception) {
-                                "webpage"
-                            }
-                            "${domain}_${System.currentTimeMillis()}.pdf"
+
+            var successCount = 0
+            var totalSaved = 0L
+            var totalOriginal = 0L
+
+            val format = targetFormat
+
+            selectedImages.forEachIndexed { index, uri ->
+                val result = when (selectedOperation) {
+                    ImageOperation.RESIZE -> {
+                        if (useCustomSize) {
+                            ImageProcessor.resize(
+                                context = context,
+                                inputUri = uri,
+                                targetWidth = customWidth.toIntOrNull() ?: 1280,
+                                targetHeight = customHeight.toIntOrNull() ?: 720,
+                                maintainAspectRatio = maintainAspectRatio,
+                                format = format,
+                                quality = compressionQuality.toInt()
+                            )
+                        } else {
+                            ImageProcessor.resizeToPreset(
+                                context = context,
+                                inputUri = uri,
+                                preset = selectedPreset,
+                                format = format,
+                                quality = compressionQuality.toInt()
+                            )
                         }
-                        InputMode.HTML -> "html_document_${System.currentTimeMillis()}.pdf"
                     }
-                    val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
-                    if (outputResult != null) {
-                        val convResult = when (inputMode) {
-                            InputMode.URL -> converter.convertUrlToPdf(
-                                context = context,
-                                url = urlInput,
-                                outputStream = outputResult.outputStream,
-                                onProgress = { progress = it }
-                            )
-                            InputMode.HTML -> converter.convertHtmlToPdf(
-                                context = context,
-                                htmlContent = htmlInput,
-                                outputStream = outputResult.outputStream,
-                                onProgress = { progress = it }
-                            )
-                        }
-                        
-                        outputResult.outputStream.close()
-                        
-                        convResult.fold(
-                            onSuccess = { cResult ->
-                                Triple(true, "PDF created successfully!\n\nPages: ${cResult.pageCount}\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
-                            },
-                            onFailure = { error ->
-                                outputResult.outputFile.file.delete()
-                                Triple(false, error.message ?: "Conversion failed", null)
-                            }
+                    ImageOperation.COMPRESS -> {
+                        ImageProcessor.compress(
+                            context = context,
+                            inputUri = uri,
+                            quality = compressionQuality.toInt(),
+                            format = targetFormat
                         )
-                    } else {
-                        Triple(false, "Cannot create output file", null)
                     }
-                } catch (e: Exception) {
-                    Triple(false, e.message ?: "Conversion failed", null)
+                    ImageOperation.CONVERT -> {
+                        ImageProcessor.convertFormat(
+                            context = context,
+                            inputUri = uri,
+                            targetFormat = targetFormat,
+                            quality = compressionQuality.toInt()
+                        )
+                    }
+                    ImageOperation.STRIP_METADATA -> {
+                        ImageProcessor.stripMetadata(
+                            context = context,
+                            inputUri = uri,
+                            format = format,
+                            quality = 95
+                        )
+                    }
                 }
+
+                if (result.success && result.outputFile != null) {
+                    val baseName = FileManager.getFileInfo(context, uri)?.name
+                        ?.substringBeforeLast(".") ?: "image_${index + 1}"
+
+                    val savedUri = saveToGallery(
+                        inputFile = result.outputFile,
+                        baseName = "${baseName}_${selectedOperation.name.lowercase()}",
+                        format = format
+                    )
+
+                    if (savedUri != null) {
+                        successCount++
+                        totalOriginal += result.originalSize
+                        totalSaved += result.savedBytes
+                    }
+
+                    // Clean up temp file
+                    result.outputFile.delete()
+                }
+
+                progress = (index + 1).toFloat() / selectedImages.size
             }
-            
-            resultSuccess = result.first
-            resultMessage = result.second
-            resultUri = result.third
-            
-            // Record in history
-            if (resultSuccess && result.third != null) {
-                com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, result.third!!)
-                
-                com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
-                    context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
-                    inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
-                    outputFileUri = result.third,
-                    outputFileName = "html_to_pdf.pdf",
-                    details = resultMessage.substringBefore("\n\nSaved to:")
-                )
-            } else if (!resultSuccess) {
-                com.yourname.pdftoolkit.data.HistoryManager.recordFailure(
-                    context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
-                    inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
-                    errorMessage = resultMessage
-                )
+
+            // Clean up image processing cache
+            CacheManager.clearImageProcessingCache(context)
+
+            resultSuccess = successCount > 0
+            resultMessage = if (successCount > 0) {
+                val savedKB = totalSaved / 1024
+                when (selectedOperation) {
+                    ImageOperation.COMPRESS ->
+                        "Compressed $successCount images.\nSaved ${savedKB}KB (~${(totalSaved * 100 / totalOriginal.coerceAtLeast(1))}% reduction)"
+                    ImageOperation.RESIZE ->
+                        "Resized $successCount images to ${if (useCustomSize) "${customWidth}x${customHeight}" else selectedPreset.displayName}"
+                    ImageOperation.CONVERT ->
+                        "Converted $successCount images to ${targetFormat.extension.uppercase()}"
+                    ImageOperation.STRIP_METADATA ->
+                        "Removed metadata from $successCount images"
+                }
+            } else {
+                "No images processed successfully"
             }
-            
-            if (resultSuccess) {
-                urlInput = ""
-                htmlInput = ""
-            }
+
             isProcessing = false
             showResult = true
+            selectedImages = emptyList()
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
-                title = stringResource(R.string.tool_html_to_pdf),
+                title = stringResource(R.string.imgtools_title),
                 onNavigateBack = onNavigateBack
             )
         }
@@ -247,188 +304,471 @@ fun HtmlToPdfScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    // Mode selection
-                    if (hasNetworkUrlSupport) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FilterChip(
-                                    selected = inputMode == InputMode.URL,
-                                    onClick = { inputMode = InputMode.URL },
-                                    label = { Text(stringResource(R.string.html_from_url)) },
-                                    leadingIcon = if (inputMode == InputMode.URL) {
-                                        { Icon(Icons.Default.Link, null, Modifier.size(18.dp)) }
-                                    } else null,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                FilterChip(
-                                    selected = inputMode == InputMode.HTML,
-                                    onClick = { inputMode = InputMode.HTML },
-                                    label = { Text(stringResource(R.string.html_from_html)) },
-                                    leadingIcon = if (inputMode == InputMode.HTML) {
-                                        { Icon(Icons.Default.Code, null, Modifier.size(18.dp)) }
-                                    } else null,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Input field
-                    item {
-                        when (inputMode) {
-                            InputMode.URL -> {
-                                OutlinedTextField(
-                                    value = urlInput,
-                                    onValueChange = { urlInput = it },
-                                    label = { Text(stringResource(R.string.html_website_url)) },
-                                    placeholder = { Text("https://example.com") },
-                                    singleLine = true,
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Language, null)
-                                    },
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Uri
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            InputMode.HTML -> {
-                                OutlinedTextField(
-                                    value = htmlInput,
-                                    onValueChange = { htmlInput = it },
-                                    label = { Text(stringResource(R.string.html_content_label)) },
-                                    placeholder = { Text("<html>\n  <body>\n    <h1>Hello</h1>\n  </body>\n</html>") },
-                                    minLines = 8,
-                                    maxLines = 15,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Quick templates for HTML mode
-                    if (inputMode == InputMode.HTML) {
+                if (selectedImages.isEmpty()) {
+                    // Show operation selection even before images are selected
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        // Operation selection - show first before images
                         item {
                             Text(
-                                text = "Quick Templates",
+                                text = "1. Select Operation",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
-                            Row(
+                            LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                AssistChip(
-                                    onClick = {
-                                        htmlInput = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>My Document</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #333; }
-    </style>
-</head>
-<body>
-    <h1>Document Title</h1>
-    <p>Your content here...</p>
-</body>
-</html>
-                                        """.trimIndent()
-                                    },
-                                    label = { Text(stringResource(R.string.html_basic_template)) }
+                                items(ImageOperation.entries) { operation ->
+                                    FilterChip(
+                                        selected = selectedOperation == operation,
+                                        onClick = { selectedOperation = operation },
+                                        label = { Text(operation.title) },
+                                        leadingIcon = if (selectedOperation == operation) {
+                                            {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
+
+                        // Operation description
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
-                                AssistChip(
-                                    onClick = {
-                                        htmlInput = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Invoice</title>
-    <style>
-        body { font-family: Arial; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #f4f4f4; }
-        .total { font-weight: bold; text-align: right; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>INVOICE</h1>
-        <p>Invoice #: 001</p>
-        <p>Date: ${java.time.LocalDate.now()}</p>
-    </div>
-    <table>
-        <tr><th>Item</th><th>Qty</th><th>Price</th></tr>
-        <tr><td>Service</td><td>1</td><td>₹100.00</td></tr>
-    </table>
-    <p class="total">Total: ₹100.00</p>
-</body>
-</html>
-                                        """.trimIndent()
-                                    },
-                                    label = { Text(stringResource(R.string.html_invoice_template)) }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = when (selectedOperation) {
+                                            ImageOperation.RESIZE -> Icons.Default.AspectRatio
+                                            ImageOperation.COMPRESS -> Icons.Default.Compress
+                                            ImageOperation.CONVERT -> Icons.Default.Transform
+                                            ImageOperation.STRIP_METADATA -> Icons.Default.DeleteSweep
+                                        },
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = selectedOperation.title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = selectedOperation.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Step 2 header
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "2. Select Images",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Empty state hint
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                                 )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Photo,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "No Images Selected",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = "Tap the button below to select images",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         }
                     }
-                    
-                    // Info card
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.Top
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        // Selected images count
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Photo,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "${selectedImages.size} image${if (selectedImages.size > 1) "s" else ""} selected",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    IconButton(onClick = { selectedImages = emptyList() }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = stringResource(R.string.action_clear),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Operation selection
+                        item {
+                            Text(
+                                text = "Select Operation",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        item {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(ImageOperation.entries) { operation ->
+                                    FilterChip(
+                                        selected = selectedOperation == operation,
+                                        onClick = { selectedOperation = operation },
+                                        label = { Text(operation.title) },
+                                        leadingIcon = if (selectedOperation == operation) {
+                                            {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
+
+                        // Operation-specific settings
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = when (inputMode) {
-                                        InputMode.URL -> "Enter a website URL to convert to PDF. The page will be rendered as it appears in a browser."
-                                        InputMode.HTML -> "Enter HTML code to convert to a PDF document. CSS styles are supported."
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = selectedOperation.title + " Settings",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    when (selectedOperation) {
+                                        ImageOperation.RESIZE -> {
+                                            // Preset or Custom toggle
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(stringResource(R.string.imgtools_custom_size), modifier = Modifier.weight(1f))
+                                                Switch(
+                                                    checked = useCustomSize,
+                                                    onCheckedChange = { useCustomSize = it }
+                                                )
+                                            }
+
+                                            if (useCustomSize) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = customWidth,
+                                                        onValueChange = { customWidth = it.filter { c -> c.isDigit() } },
+                                                        label = { Text(stringResource(R.string.label_width)) },
+                                                        modifier = Modifier.weight(1f),
+                                                        singleLine = true
+                                                    )
+                                                    OutlinedTextField(
+                                                        value = customHeight,
+                                                        onValueChange = { customHeight = it.filter { c -> c.isDigit() } },
+                                                        label = { Text(stringResource(R.string.label_height)) },
+                                                        modifier = Modifier.weight(1f),
+                                                        singleLine = true
+                                                    )
+                                                }
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(stringResource(R.string.imgtools_aspect_ratio), modifier = Modifier.weight(1f))
+                                                    Switch(
+                                                        checked = maintainAspectRatio,
+                                                        onCheckedChange = { maintainAspectRatio = it }
+                                                    )
+                                                }
+                                            } else {
+                                                Text(stringResource(R.string.imgtools_target_resolution), style = MaterialTheme.typography.bodySmall)
+                                                LazyRow(
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    items(ResolutionPreset.entries) { preset ->
+                                                        FilterChip(
+                                                            selected = selectedPreset == preset,
+                                                            onClick = { selectedPreset = preset },
+                                                            label = {
+                                                                Text(
+                                                                    preset.displayName.substringBefore(" ("),
+                                                                    maxLines = 1
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        ImageOperation.COMPRESS -> {
+                                            // Quality slider
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(stringResource(R.string.label_quality))
+                                                Text(
+                                                    "${compressionQuality.toInt()}%",
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+
+                                            Slider(
+                                                value = compressionQuality,
+                                                onValueChange = { compressionQuality = it },
+                                                valueRange = 10f..100f,
+                                                steps = 8
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    "Smaller file",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    "Better quality",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+
+                                            Text(
+                                                "Uses WebP format for optimal compression",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+
+                                        ImageOperation.CONVERT -> {
+                                            Text(stringResource(R.string.imgtools_target_format))
+                                            LazyRow(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                items(OutputFormat.entries) { format ->
+                                                    FilterChip(
+                                                        selected = targetFormat == format,
+                                                        onClick = { targetFormat = format },
+                                                        label = { Text(format.extension.uppercase()) }
+                                                    )
+                                                }
+                                            }
+
+                                            // Quality slider for lossy formats
+                                            if (targetFormat != OutputFormat.PNG) {
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(stringResource(R.string.label_quality))
+                                                    Text(
+                                                        "${compressionQuality.toInt()}%",
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+
+                                                Slider(
+                                                    value = compressionQuality,
+                                                    onValueChange = { compressionQuality = it },
+                                                    valueRange = 10f..100f,
+                                                    steps = 8
+                                                )
+                                            }
+                                        }
+
+                                        ImageOperation.STRIP_METADATA -> {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Info,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(
+                                                        "Removes EXIF data",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                    Text(
+                                                        "GPS location, camera info, timestamps, etc.",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Output format (visible for all operations)
+                                    if (selectedOperation != ImageOperation.CONVERT) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            "Output Format",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            items(OutputFormat.entries) { fmt ->
+                                                FilterChip(
+                                                    selected = targetFormat == fmt,
+                                                    onClick = { targetFormat = fmt },
+                                                    label = { Text(fmt.extension.uppercase()) }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Info card
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                 )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Processed images will be saved to Pictures/PDF Toolkit folder.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
                             }
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
                         modifier = Modifier
+                            .align(Alignment.Center)
                             .fillMaxWidth()
                             .padding(32.dp)
-                            .align(Alignment.Center)
                     ) {
                         Column(
                             modifier = Modifier
@@ -438,16 +778,13 @@ fun HtmlToPdfScreen(
                         ) {
                             OperationProgress(
                                 progress = progress,
-                                message = if (inputMode == InputMode.URL) 
-                                    "Loading webpage..." 
-                                else 
-                                    "Converting HTML..."
+                                message = "Processing images..."
                             )
                         }
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -458,62 +795,74 @@ fun HtmlToPdfScreen(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
-                    // Save location option
-                    SaveLocationSelector(
-                        useCustomLocation = useCustomLocation,
-                        onUseCustomLocationChange = { useCustomLocation = it }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    ActionButton(
-                        text = "Convert to PDF",
-                        onClick = {
-                            if (useCustomLocation) {
-                                val fileName = when (inputMode) {
-                                    InputMode.URL -> {
-                                        val domain = try {
-                                            java.net.URL(urlInput).host.replace("www.", "")
-                                        } catch (e: Exception) {
-                                            "webpage"
-                                        }
-                                        "${domain}_${System.currentTimeMillis()}.pdf"
-                                    }
-                                    InputMode.HTML -> "html_document_${System.currentTimeMillis()}.pdf"
-                                }
-                                saveFileLauncher.safeLaunch(fileName, context)
-                            } else {
-                                convertWithDefaultLocation()
+                    if (selectedImages.isEmpty()) {
+                        ActionButton(
+                            text = "Select Images",
+                            onClick = {
+                                pickImagesLauncher.safeLaunch(arrayOf("image/*"), context)
+                            },
+                            icon = Icons.Default.Photo
+                        )
+                    } else {
+                        ActionButton(
+                            text = "Process ${selectedImages.size} Image${if (selectedImages.size > 1) "s" else ""}",
+                            onClick = { processImages() },
+                            isLoading = isProcessing,
+                            icon = when (selectedOperation) {
+                                ImageOperation.RESIZE -> Icons.Default.AspectRatio
+                                ImageOperation.COMPRESS -> Icons.Default.Compress
+                                ImageOperation.CONVERT -> Icons.Default.Transform
+                                ImageOperation.STRIP_METADATA -> Icons.Default.DeleteSweep
                             }
-                        },
-                        enabled = isInputValid,
-                        isLoading = isProcessing,
-                        icon = Icons.Default.PictureAsPdf
-                    )
+                        )
+                    }
                 }
             }
         }
     }
-    
-    // Result dialog with View option
+
+    // Result dialog
     if (showResult) {
-        ResultDialog(
-            isSuccess = resultSuccess,
-            title = if (resultSuccess) "Conversion Complete" else "Conversion Failed",
-            message = resultMessage,
-            onDismiss = { 
-                showResult = false
-                resultUri = null
+        AlertDialog(
+            onDismissRequest = { showResult = false },
+            icon = {
+                Icon(
+                    imageVector = if (resultSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
+                    contentDescription = null,
+                    tint = if (resultSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                )
             },
-            onAction = resultUri?.let { uri ->
-                { scope.launch(Dispatchers.IO) { FileOpener.openPdf(context, uri) } }
+            title = {
+                Text(if (resultSuccess) "Processing Complete" else "Processing Failed")
             },
-            actionText = stringResource(R.string.action_open_pdf)
+            text = {
+                Text(resultMessage)
+            },
+            confirmButton = {
+                if (resultSuccess) {
+                    Button(
+                        onClick = {
+                            showResult = false
+                            openGallery()
+                        }
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.history_open_gallery))
+                    }
+                } else {
+                    TextButton(onClick = { showResult = false }) {
+                        Text(stringResource(R.string.action_ok))
+                    }
+                }
+            },
+            dismissButton = {
+                if (resultSuccess) {
+                    TextButton(onClick = { showResult = false }) {
+                        Text(stringResource(R.string.action_close))
+                    }
+                }
+            }
         )
     }
-}
-
-private enum class InputMode {
-    URL,
-    HTML
 }
