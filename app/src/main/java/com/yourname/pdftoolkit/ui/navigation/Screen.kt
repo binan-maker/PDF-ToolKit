@@ -12,7 +12,7 @@ enum class BottomNavTab(
     val title: String,
     val icon: ImageVector
 ) {
-    TOOLS("tools", "Tools", Icons.Default.Build),
+    HOME("tools", "Home", Icons.Default.Home),
     FILES("files", "Files", Icons.Default.Folder)
 }
 
@@ -25,7 +25,7 @@ sealed class Screen(val route: String) {
     object Tools : Screen("tools")
     object Files : Screen("files")
     object Settings : Screen("settings")
-    
+
     // PDF Viewer (native/AndroidX viewer - primary route)
     object PdfViewer : Screen("pdf_viewer?uri={uri}&name={name}") {
         fun createRoute(uri: String, name: String): String {
@@ -40,7 +40,7 @@ sealed class Screen(val route: String) {
             return "pdf_viewer_legacy?uri=$uri&name=$name"
         }
     }
-    
+
     // PDF Tools
     object Merge : Screen("merge")
     object Split : Screen("split")
@@ -70,10 +70,10 @@ sealed class Screen(val route: String) {
             return "image_tools?operation=$operation"
         }
     }
-    
+
     // Legacy compatibility
     object Home : Screen("tools")
-    
+
     companion object {
         /**
          * Returns the Screen object for a given tool ID.
@@ -111,7 +111,7 @@ sealed class Screen(val route: String) {
                 else -> Tools
             }
         }
-        
+
         /**
          * Returns the route string for a given tool ID.
          * Used for navigation with parameters (e.g., image tools with operation).
@@ -125,7 +125,7 @@ sealed class Screen(val route: String) {
                 else -> fromToolId(toolId).route
             }
         }
-        
+
         /**
          * Returns the Screen object for a given feature title.
          * Used for legacy HomeScreen compatibility.

@@ -7,20 +7,26 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.yourname.pdftoolkit.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.semantics.Role
 import androidx.core.content.FileProvider
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -354,15 +360,32 @@ fun AppNavigation(
                 if (showTopBar) {
                     TopAppBar(
                         title = {
-                            Text(
-                                text = when (currentRoute) {
-                                    Screen.Tools.route -> stringResource(R.string.app_name)
-                                    Screen.Files.route -> stringResource(R.string.nav_tab_files)
-                                    else -> stringResource(R.string.app_name)
-                                },
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.size(32.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(7.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Text(
+                                    text = when (currentRoute) {
+                                        Screen.Tools.route -> stringResource(R.string.app_name)
+                                        Screen.Files.route -> stringResource(R.string.nav_tab_files)
+                                        else -> stringResource(R.string.app_name)
+                                    },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         },
                         actions = {
                             IconButton(
@@ -388,10 +411,27 @@ fun AppNavigation(
                     enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                     exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                 ) {
-                    BottomNavigationBar(
-                        navController = navController,
-                        currentRoute = currentRoute
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .height(72.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            tonalElevation = 5.dp,
+                            shadowElevation = 8.dp
+                        ) {
+                            BottomNavigationBar(
+                                navController = navController,
+                                currentRoute = currentRoute
+                            )
+                        }
+                    }
                 }
             }
         ) { paddingValues ->
@@ -729,57 +769,88 @@ fun AppNavigation(
 }
 
 /**
- * Bottom Navigation Bar with 2 tabs (Tools, Files).
+ * Bottom Navigation Bar with 2 tabs (Home, Files).
  */
 @Composable
 private fun BottomNavigationBar(
     navController: NavHostController,
     currentRoute: String?
 ) {
-    NavigationBar {
+    val isDarkTheme = isSystemInDarkTheme()
+    val selectedBackground = if (isDarkTheme) Color(0xFF3A2425) else Color(0xFFFFE6DF)
+    val selectedContent = if (isDarkTheme) Color(0xFFFF826D) else Color(0xFFFF6B57)
+    val unselectedContent = if (isDarkTheme) Color(0xFFB4AFBC) else Color(0xFF777481)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         BottomNavTab.entries.forEach { tab ->
             val selected = when (tab) {
-                BottomNavTab.TOOLS -> currentRoute == Screen.Tools.route
+                BottomNavTab.HOME -> currentRoute == Screen.Tools.route
                 BottomNavTab.FILES -> currentRoute == Screen.Files.route
             }
 
             val tabTitle = getTabTitle(tab)
 
-            NavigationBarItem(
-                icon = {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(if (selected) selectedBackground else Color.Transparent)
+                    .selectable(
+                        selected = selected,
+                        role = Role.Tab,
+                        onClick = {
+                            val targetRoute = when (tab) {
+                                BottomNavTab.HOME -> Screen.Tools.route
+                                BottomNavTab.FILES -> Screen.Files.route
+                            }
+
+                            safeNavigate(navController, targetRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = tabTitle
+                        ,
+                        tint = if (selected) selectedContent else unselectedContent,
+                        modifier = Modifier.size(20.dp)
                     )
-                },
-                label = { Text(tabTitle) },
-                selected = selected,
-                onClick = {
-                    val targetRoute = when (tab) {
-                        BottomNavTab.TOOLS -> Screen.Tools.route
-                        BottomNavTab.FILES -> Screen.Files.route
-                    }
-
-                    safeNavigate(navController, targetRoute) {
-                        // Pop up to start destination to avoid building up a stack
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        // Avoid multiple copies of the same destination
-                        launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
-                        restoreState = true
-                    }
+                    Text(
+                        text = tabTitle,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) selectedContent else unselectedContent,
+                        maxLines = 1
+                    )
                 }
-            )
+            }
         }
     }
 }
 
-@Composable
-private fun getTabTitle(tab: BottomNavTab): String {
-    return when (tab) {
-        BottomNavTab.TOOLS -> stringResource(R.string.nav_tab_tools)
-        BottomNavTab.FILES -> stringResource(R.string.nav_tab_files)
+    @Composable
+    private fun getTabTitle(tab: BottomNavTab): String {
+        return when (tab) {
+            BottomNavTab.HOME -> stringResource(R.string.nav_tab_home)
+            BottomNavTab.FILES -> stringResource(R.string.nav_tab_files)
+        }
     }
-}

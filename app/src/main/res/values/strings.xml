@@ -45,9 +45,13 @@
     <!-- Home Screen -->
     <string name="home_title">Paperly</string>
     <string name="home_subtitle">All your PDF &amp; image tools in one place</string>
+    <string name="home_hero_eyebrow">Paperly</string>
+    <string name="home_hero_title">Make space for\ngood documents.</string>
+    <string name="home_quick_actions_title">Start with a favorite</string>
     <string name="fab_open_pdf">Open PDF</string>
 
     <!-- Navigation -->
+    <string name="nav_tab_home">Home</string>
     <string name="nav_tab_tools">Tools</string>
     <string name="nav_tab_files">Files</string>
     <string name="nav_open_history">Open History</string>
@@ -253,6 +257,7 @@
     <string name="settings_about_build">Build</string>
     <string name="settings_about_made_with">Made with</string>
     <string name="settings_about_kotlin_compose">Kotlin &amp; Jetpack Compose</string>
+    <string name="settings_quality_range">Smaller file • Better quality</string>
     <string name="settings_app_name">Paperly</string>
     <string name="settings_made_with_love">Made with ❤️ for productivity</string>
     <string name="settings_copyright">© 2026 Paperly</string>
@@ -538,6 +543,15 @@ Saved to: %1$s</string>
     <!-- Group 4 additions (Files, Compress, Repair, Extract, PageNumber, Licenses) -->
     <string name="files_clear_dialog_title">Clear Recent Files?</string>
     <string name="files_clear_dialog_message">This will remove all files from your recent history. The actual files will not be deleted.</string>
+    <string name="files_header_eyebrow">Your library</string>
+    <string name="files_header_title">Files that are ready when you are</string>
+    <string name="files_header_subtitle">Access your recent documents</string>
+    <string name="files_open_title">Open a PDF</string>
+    <string name="files_open_subtitle">Browse your device and pick a document</string>
+    <string name="files_recent_eyebrow">Your library</string>
+    <string name="files_recent_title">Recent files</string>
+    <string name="files_empty_title">No recent files</string>
+    <string name="files_empty_subtitle">Open a document to see it here</string>
     <string name="compress_no_pdf_subtitle">Select a PDF file to reduce its file size</string>
     <string name="action_share_all">Share All</string>
     <string name="repair_title">Repair PDF</string>

@@ -10,13 +10,20 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -24,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yourname.pdftoolkit.BuildConfig
 import com.yourname.pdftoolkit.R
 import com.yourname.pdftoolkit.data.SafUriManager
@@ -157,60 +165,224 @@ fun ToolsScreen(
     }
 
     val allTools = getAllTools()
+    val isDarkTheme = isSystemInDarkTheme()
+    val homeColors = remember(isDarkTheme) { HomeColors.forTheme(isDarkTheme) }
 
-    LazyColumn(
+    fun openTool(tool: ToolItem) {
+        if (tool.screen == Screen.Home && tool.id == "view_pdf") {
+            pdfPickerLauncher.safeLaunch(arrayOf("application/pdf"), context)
+        } else {
+            val imageToolIds = listOf("image_compress", "image_resize", "image_convert", "image_metadata")
+            if (imageToolIds.contains(tool.id) && onNavigateToRoute != null) {
+                onNavigateToRoute(Screen.getRouteForToolId(tool.id))
+            } else {
+                onNavigateToScreen(tool.screen)
+            }
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
+            .background(homeColors.canvas)
     ) {
-        // Subtitle
-        item {
-            Text(
-                text = stringResource(R.string.home_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            contentPadding = PaddingValues(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 32.dp)
+        ) {
+            item {
+                HomeHero(
+                    colors = homeColors,
+                    onOpenPdf = {
+                        pdfPickerLauncher.safeLaunch(arrayOf("application/pdf"), context)
+                    }
+                )
+            }
 
-        // Sections
-        ToolSection.entries.forEach { section ->
-            val sectionTools = allTools.filter { it.section == section }
-            if (sectionTools.isNotEmpty()) {
-                item {
-                    SectionHeader(title = getSectionTitle(section))
+            item {
+                HomeSectionHeading(
+                    eyebrow = stringResource(R.string.category_quick_actions).uppercase(),
+                    title = stringResource(R.string.home_quick_actions_title),
+                    colors = homeColors
+                )
+            }
+
+            item {
+                ToolGrid(
+                    tools = allTools.filter { it.section == ToolSection.QUICK_ACTIONS },
+                    colors = homeColors,
+                    onToolClick = ::openTool
+                )
+            }
+
+            ToolSection.entries
+                .filter { it != ToolSection.QUICK_ACTIONS }
+                .forEach { section ->
+                    val sectionTools = allTools.filter { it.section == section }
+                    if (sectionTools.isNotEmpty()) {
+                        item {
+                            HomeSectionHeading(
+                                eyebrow = getSectionTitle(section).uppercase(),
+                                title = getSectionTitle(section),
+                                colors = homeColors
+                            )
+                        }
+                        item {
+                            ToolGrid(
+                                tools = sectionTools,
+                                colors = homeColors,
+                                onToolClick = ::openTool
+                            )
+                        }
+                    }
+                }
+        }
+    }
+}
+
+private data class HomeColors(
+    val canvas: Color,
+    val card: Color,
+    val cardStrong: Color,
+    val ink: Color,
+    val muted: Color,
+    val accent: Color,
+    val accentSoft: Color,
+    val iconColors: List<Color>
+) {
+    companion object {
+        fun forTheme(isDark: Boolean): HomeColors {
+            return if (isDark) {
+                HomeColors(
+                    canvas = Color(0xFF111116),
+                    card = Color(0xFF1A1A21),
+                    cardStrong = Color(0xFF24242D),
+                    ink = Color(0xFFF5F3F7),
+                    muted = Color(0xFFB4AFBC),
+                    accent = Color(0xFFFF826D),
+                    accentSoft = Color(0xFF3A2425),
+                    iconColors = listOf(Color(0xFFFF826D), Color(0xFFB69CFF), Color(0xFF62D6C1), Color(0xFFFFC46B))
+                )
+            } else {
+                HomeColors(
+                    canvas = Color(0xFFF8F7FB),
+                    card = Color(0xFFFFFFFF),
+                    cardStrong = Color(0xFF1E1D29),
+                    ink = Color(0xFF1E1D29),
+                    muted = Color(0xFF777481),
+                    accent = Color(0xFFFF6B57),
+                    accentSoft = Color(0xFFFFE6DF),
+                    iconColors = listOf(Color(0xFFFF6B57), Color(0xFF7658E8), Color(0xFF159A87), Color(0xFFCA7B00))
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeHero(
+    colors: HomeColors,
+    onOpenPdf: () -> Unit
+) {
+    Card(
+        onClick = onOpenPdf,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.cardStrong),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(colors.cardStrong, colors.cardStrong.copy(alpha = 0.86f), Color(0xFF3D315E))
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.accent.copy(alpha = 0.18f)
+                ) {
+                    Text(
+                        text = stringResource(R.string.home_hero_eyebrow),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = MaterialTheme.typography.labelSmall.letterSpacing,
+                        color = colors.accent
+                    )
                 }
 
-                item {
-                    ToolGrid(
-                        tools = sectionTools,
-                        onToolClick = { tool ->
-                            if (tool.screen == Screen.Home && tool.id == "view_pdf") {
-                                // Special handling for View PDF
-                                pdfPickerLauncher.safeLaunch(arrayOf("application/pdf"), context)
-                            } else {
-                                // Check if this is an image tool that needs special routing
-                                val imageToolIds = listOf("image_compress", "image_resize", "image_convert", "image_metadata")
-                                if (imageToolIds.contains(tool.id) && onNavigateToRoute != null) {
-                                    // Use route with operation parameter for image tools
-                                    val route = Screen.getRouteForToolId(tool.id)
-                                    onNavigateToRoute(route)
-                                } else {
-                                    // Use screen object for other tools
-                                    onNavigateToScreen(tool.screen)
-                                }
-                            }
-                        }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = stringResource(R.string.home_hero_title),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = MaterialTheme.typography.headlineMedium.lineHeight
                     )
+                    Text(
+                        text = stringResource(R.string.home_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.72f)
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = colors.accent
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.UploadFile,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(19.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.fab_open_pdf),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
+    }
+}
 
-        // Bottom spacing
-        item {
-            Spacer(modifier = Modifier.height(80.dp))
-        }
+@Composable
+private fun HomeSectionHeading(
+    eyebrow: String,
+    title: String,
+    colors: HomeColors
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            text = eyebrow,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp,
+            color = colors.accent
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.ink
+        )
     }
 }
 
@@ -230,32 +402,12 @@ private fun getSectionTitle(section: ToolSection): String {
 }
 
 @Composable
-private fun SectionHeader(title: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Divider(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-    }
-}
-
-@Composable
 private fun ToolGrid(
     tools: List<ToolItem>,
+    colors: HomeColors,
     onToolClick: (ToolItem) -> Unit
 ) {
-    // Use a 3-column grid for compact display
-    val rows = tools.chunked(3)
+    val rows = tools.chunked(2)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -268,12 +420,12 @@ private fun ToolGrid(
                 rowTools.forEach { tool ->
                     ToolCard(
                         tool = tool,
+                        colors = colors,
                         onClick = { onToolClick(tool) },
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Fill remaining space if row is incomplete
-                repeat(3 - rowTools.size) {
+                repeat(2 - rowTools.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -285,6 +437,7 @@ private fun ToolGrid(
 @Composable
 private fun ToolCard(
     tool: ToolItem,
+    colors: HomeColors,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -304,44 +457,47 @@ private fun ToolCard(
         onClick = onClick,
         modifier = modifier
             .scale(scale)
-            .aspectRatio(1f),
+            .height(124.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = colors.card
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(
+            width = 1.dp,
+            color = colors.iconColors[tool.section.ordinal % colors.iconColors.size].copy(alpha = 0.18f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(40.dp)
+                shape = RoundedCornerShape(12.dp),
+                color = colors.iconColors[tool.section.ordinal % colors.iconColors.size].copy(alpha = 0.14f),
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = tool.icon,
                     contentDescription = tool.getTitle(),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = colors.iconColors[tool.section.ordinal % colors.iconColors.size],
                     modifier = Modifier
                         .padding(8.dp)
-                        .size(24.dp)
+                        .size(22.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = tool.getTitle(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Start,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface
+                color = colors.ink
             )
         }
     }

@@ -10,16 +10,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yourname.pdftoolkit.BuildConfig
 import com.yourname.pdftoolkit.ui.components.LicensesDialog
 import com.yourname.pdftoolkit.util.CacheManager
@@ -47,6 +52,42 @@ import java.io.File
 enum class DefaultImageFormat(val displayName: String, val extension: String) {
     WEBP("WebP (Recommended)", "webp"),
     JPEG("JPEG", "jpg")
+}
+
+private data class SettingsColors(
+    val canvas: Color,
+    val card: Color,
+    val ink: Color,
+    val muted: Color,
+    val accent: Color,
+    val accentSoft: Color,
+    val iconColors: List<Color>
+) {
+    companion object {
+        fun forTheme(isDark: Boolean): SettingsColors {
+            return if (isDark) {
+                SettingsColors(
+                    canvas = Color(0xFF111116),
+                    card = Color(0xFF1A1A21),
+                    ink = Color(0xFFF5F3F7),
+                    muted = Color(0xFFB4AFBC),
+                    accent = Color(0xFFFF826D),
+                    accentSoft = Color(0xFF3A2425),
+                    iconColors = listOf(Color(0xFFFF826D), Color(0xFFB69CFF), Color(0xFF62D6C1), Color(0xFFFFC46B))
+                )
+            } else {
+                SettingsColors(
+                    canvas = Color(0xFFF8F7FB),
+                    card = Color(0xFFFFFFFF),
+                    ink = Color(0xFF1E1D29),
+                    muted = Color(0xFF777481),
+                    accent = Color(0xFFFF6B57),
+                    accentSoft = Color(0xFFFFE6DF),
+                    iconColors = listOf(Color(0xFFFF6B57), Color(0xFF7658E8), Color(0xFF159A87), Color(0xFFCA7B00))
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -94,6 +135,8 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val isDarkTheme = isSystemInDarkTheme()
+    val settingsColors = remember(isDarkTheme) { SettingsColors.forTheme(isDarkTheme) }
 
     var cacheSize by remember { mutableStateOf("Calculating...") }
     var isClearing by remember { mutableStateOf(false) }
@@ -131,6 +174,7 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        containerColor = settingsColors.canvas,
         topBar = {
             ToolTopBar(
                 title = stringResource(R.string.settings_title),
@@ -141,8 +185,10 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .background(settingsColors.canvas)
                 .padding(paddingValues),
-            contentPadding = PaddingValues(top = 0.dp, bottom = 8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
         ) {
             // Quality Settings Section
             item {
@@ -154,74 +200,77 @@ fun SettingsScreen(
 
             // Default Compression Quality
             item {
-                Column(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = settingsColors.card),
+                    border = BorderStroke(1.dp, settingsColors.muted.copy(alpha = 0.12f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.HighQuality,
-                                contentDescription = stringResource(R.string.cd_compression_quality),
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.settings_compression_quality),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "${compressionQuality}% - ${getQualityDescription(compressionQuality)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Slider(
-                        value = compressionQuality.toFloat(),
-                        onValueChange = {
-                            compressionQuality = it.toInt()
-                        },
-                        onValueChangeFinished = {
-                            SettingsPreferences.setCompressionQuality(context, compressionQuality)
-                        },
-                        valueRange = 30f..100f,
-                        steps = 6,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(16.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.compress_smaller_file),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = settingsColors.accentSoft,
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.HighQuality,
+                                    contentDescription = stringResource(R.string.cd_compression_quality),
+                                    modifier = Modifier.padding(9.dp),
+                                    tint = settingsColors.accent
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.settings_compression_quality),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = settingsColors.ink
+                                )
+                                Text(
+                                    text = "${compressionQuality}% - ${getQualityDescription(compressionQuality)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = settingsColors.muted
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Slider(
+                            value = compressionQuality.toFloat(),
+                            onValueChange = {
+                                compressionQuality = it.toInt()
+                            },
+                            onValueChangeFinished = {
+                                SettingsPreferences.setCompressionQuality(context, compressionQuality)
+                            },
+                            valueRange = 30f..100f,
+                            steps = 6,
+                            colors = SliderDefaults.colors(
+                                thumbColor = settingsColors.accent,
+                                activeTrackColor = settingsColors.accent,
+                                inactiveTrackColor = settingsColors.muted.copy(alpha = 0.22f)
+                            ),
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
+
                         Text(
-                            text = stringResource(R.string.compress_better_quality),
+                            text = stringResource(R.string.settings_quality_range),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = settingsColors.muted,
+                            modifier = Modifier.padding(horizontal = 4.dp)
                         )
                     }
                 }
@@ -323,12 +372,12 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
+                        color = settingsColors.accentSoft,
                         modifier = Modifier.size(64.dp)
                     ) {
                         Icon(
@@ -337,7 +386,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .padding(16.dp)
                                 .size(32.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = settingsColors.accent
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -349,13 +398,13 @@ fun SettingsScreen(
                     Text(
                         text = stringResource(R.string.settings_made_with_love),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = settingsColors.muted
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.settings_copyright),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = settingsColors.muted
                     )
                 }
             }
@@ -612,17 +661,22 @@ private fun SettingsSectionHeader(
     title: String,
     topPadding: androidx.compose.ui.unit.Dp = 24.dp
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val colors = remember(isDarkTheme) { SettingsColors.forTheme(isDarkTheme) }
+
     Text(
-        text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = colors.accent,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.4.sp,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = topPadding, bottom = 8.dp)
+            .padding(start = 20.dp, end = 20.dp, top = topPadding, bottom = 8.dp)
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsItem(
     title: String,
@@ -631,45 +685,53 @@ private fun SettingsItem(
     onClick: () -> Unit,
     trailing: @Composable (() -> Unit)? = null
 ) {
-    Surface(
+    val isDarkTheme = isSystemInDarkTheme()
+    val colors = remember(isDarkTheme) { SettingsColors.forTheme(isDarkTheme) }
+
+    Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface
+            .padding(horizontal = 20.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.card),
+        border = BorderStroke(1.dp, colors.muted.copy(alpha = 0.12f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(40.dp)
+                shape = RoundedCornerShape(12.dp),
+                color = colors.accentSoft,
+                modifier = Modifier.size(42.dp)
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
                     modifier = Modifier
-                        .padding(8.dp)
-                        .size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        .padding(9.dp),
+                    tint = colors.accent
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.muted,
+                    maxLines = 1
                 )
             }
 
@@ -679,7 +741,7 @@ private fun SettingsItem(
                 Icon(
                     Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = colors.muted
                 )
             }
         }
