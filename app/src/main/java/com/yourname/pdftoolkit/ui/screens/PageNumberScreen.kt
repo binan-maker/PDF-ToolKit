@@ -432,7 +432,7 @@ fun PageNumberScreen(
                             onClick = {
                                 pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         // Save location option
@@ -453,8 +453,8 @@ fun PageNumberScreen(
                                     addNumbersWithDefaultLocation()
                                 }
                             },
+                            icon = Icons.Default.FormatListNumbered,
                             isLoading = isProcessing,
-                            icon = Icons.Default.FormatListNumbered
                         )
                     }
                 }

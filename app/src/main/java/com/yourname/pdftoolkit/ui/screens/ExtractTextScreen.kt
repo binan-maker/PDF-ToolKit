@@ -4,7 +4,6 @@ import com.yourname.pdftoolkit.util.safeLaunch
 import androidx.compose.ui.res.stringResource
 import com.yourname.pdftoolkit.R
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -340,7 +339,7 @@ fun ExtractTextScreen(
                             onClick = {
                                 pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         ActionButton(
@@ -368,4 +367,9 @@ fun ExtractTextScreen(
             onDismiss = { showResult = false }
         )
     }
+}
+
+@Composable
+fun FileItemCard(fileName: String, fileSize: String, onRemove: () -> Unit) {
+    TODO("Not yet implemented")
 }

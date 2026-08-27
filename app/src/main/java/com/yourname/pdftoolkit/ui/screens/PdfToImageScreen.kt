@@ -13,7 +13,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
@@ -35,8 +34,6 @@ import com.yourname.pdftoolkit.domain.operations.ImageConverter
 import com.yourname.pdftoolkit.domain.operations.ImageFormat
 import com.yourname.pdftoolkit.ui.components.*
 import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.ui.screens.DefaultImageFormat
-import com.yourname.pdftoolkit.ui.screens.SettingsPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -425,14 +422,14 @@ fun PdfToImageScreen(
                             onClick = {
                                 pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         ActionButton(
                             text = "Convert to Images",
                             onClick = { convertPdfToImages() },
+                            icon = Icons.Default.Image,
                             isLoading = isProcessing,
-                            icon = Icons.Default.Image
                         )
                     }
                 }

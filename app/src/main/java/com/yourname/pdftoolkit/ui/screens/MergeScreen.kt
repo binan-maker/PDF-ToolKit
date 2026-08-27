@@ -4,7 +4,6 @@ import com.yourname.pdftoolkit.util.safeLaunch
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
@@ -337,7 +336,7 @@ fun MergeScreen(
                             onClick = {
                                 pickPdfsLauncher.safeLaunch(arrayOf("application/pdf"), context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         ActionButton(

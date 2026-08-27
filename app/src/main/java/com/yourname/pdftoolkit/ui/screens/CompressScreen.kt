@@ -7,7 +7,6 @@ import com.yourname.pdftoolkit.R
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
@@ -667,7 +666,7 @@ fun CompressScreen(
                             onClick = {
                                 pickPdfLauncher.safeLaunch("application/pdf", context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         // Save location option

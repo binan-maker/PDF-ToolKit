@@ -28,8 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yourname.pdftoolkit.data.FileManager
 import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.ui.screens.DefaultImageFormat
-import com.yourname.pdftoolkit.ui.screens.SettingsPreferences
 import com.yourname.pdftoolkit.util.CacheManager
 import com.yourname.pdftoolkit.util.ImageProcessor
 import com.yourname.pdftoolkit.util.OutputFormat
@@ -801,19 +799,19 @@ fun ImageToolsScreen(
                             onClick = {
                                 pickImagesLauncher.safeLaunch(arrayOf("image/*"), context)
                             },
-                            icon = Icons.Default.Photo
+                            icon = Icons.Default.Photo,
                         )
                     } else {
                         ActionButton(
                             text = "Process ${selectedImages.size} Image${if (selectedImages.size > 1) "s" else ""}",
                             onClick = { processImages() },
-                            isLoading = isProcessing,
                             icon = when (selectedOperation) {
                                 ImageOperation.RESIZE -> Icons.Default.AspectRatio
                                 ImageOperation.COMPRESS -> Icons.Default.Compress
                                 ImageOperation.CONVERT -> Icons.Default.Transform
                                 ImageOperation.STRIP_METADATA -> Icons.Default.DeleteSweep
-                            }
+                            },
+                            isLoading = isProcessing,
                         )
                     }
                 }

@@ -5,7 +5,6 @@ import androidx.compose.ui.res.stringResource
 import com.yourname.pdftoolkit.R
 
 import android.net.Uri
-import android.webkit.URLUtil
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*

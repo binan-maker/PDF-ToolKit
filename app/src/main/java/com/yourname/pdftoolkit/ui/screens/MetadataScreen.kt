@@ -648,7 +648,7 @@ fun MetadataScreen(
                                 onClick = {
                                     pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                                 },
-                                icon = Icons.Default.FolderOpen
+                                icon = Icons.Default.FolderOpen,
                             )
                         }
                         isEditing -> {
@@ -670,8 +670,8 @@ fun MetadataScreen(
                                         saveWithDefaultLocation()
                                     }
                                 },
+                                icon = Icons.Default.Save,
                                 isLoading = isProcessing,
-                                icon = Icons.Default.Save
                             )
                         }
                         else -> {
@@ -680,7 +680,7 @@ fun MetadataScreen(
                                 onClick = {
                                     pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                                 },
-                                icon = Icons.Default.FolderOpen
+                                icon = Icons.Default.FolderOpen,
                             )
                         }
                     }

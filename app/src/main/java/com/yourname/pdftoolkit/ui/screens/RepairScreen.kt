@@ -361,7 +361,7 @@ fun RepairScreen(
                             onClick = {
                                 pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         // Save location option
@@ -382,8 +382,8 @@ fun RepairScreen(
                                     repairWithDefaultLocation()
                                 }
                             },
+                            icon = Icons.Default.Build,
                             isLoading = isProcessing,
-                            icon = Icons.Default.Build
                         )
                     }
                 }

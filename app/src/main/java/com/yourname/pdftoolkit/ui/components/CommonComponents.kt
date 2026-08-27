@@ -1,67 +1,217 @@
 package com.yourname.pdftoolkit.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import com.yourname.pdftoolkit.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Close
+import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.yourname.pdftoolkit.util.OutputFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.OutputStream
 
 /**
- * Reusable top app bar for tool screens.
+ * Composable that provides save location selection UI and handles file creation.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolTopBar(
-    title: String,
-    onNavigateBack: () -> Unit
+fun SaveLocationSelector(
+    useCustomLocation: Boolean,
+    onUseCustomLocationChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    TopAppBar(
-        title = {
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold
-            )
-        },
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back)
+    val context = LocalContext.current
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                onClick = { onUseCustomLocationChange(!useCustomLocation) },
+                color = androidx.compose.ui.graphics.Color.Transparent
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(38.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FolderOpen,
+                            contentDescription = null,
+                            modifier = Modifier.padding(9.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(11.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Save location",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (useCustomLocation) {
+                                "Choose a folder after processing"
+                            } else {
+                                "Paperly folder"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Switch(
+                        checked = useCustomLocation,
+                        onCheckedChange = onUseCustomLocationChange
+                    )
+                }
+            }
+            if (!useCustomLocation) {
+                Text(
+                    text = "Default: ${OutputFolderManager.getOutputFolderPath(context)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 63.dp, end = 14.dp, bottom = 13.dp)
                 )
             }
-        },
-        windowInsets = WindowInsets(0, 0, 0, 0),
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    )
+        }
+    }
 }
 
 /**
- * Action button used at the bottom of tool screens.
+ * Result of a save operation.
  */
+sealed class SaveResult {
+    data class Success(
+        val uri: Uri,
+        val fileName: String,
+        val location: String
+    ) : SaveResult()
+
+    data class Error(val message: String) : SaveResult()
+}
+
+/**
+ * Helper object for saving files with default or custom location.
+ */
+object SaveHelper {
+
+    suspend fun saveToDefaultFolder(
+        context: android.content.Context,
+        fileName: String,
+        writeContent: suspend (OutputStream) -> Result<Unit>
+    ): SaveResult {
+        return withContext(Dispatchers.IO) {
+            try {
+                val outputResult = OutputFolderManager.createOutputStream(context, fileName)
+
+                if (outputResult == null) {
+                    return@withContext SaveResult.Error("Cannot create output file")
+                }
+
+                val result = writeContent(outputResult.outputStream)
+                outputResult.outputStream.close()
+
+                result.fold(
+                    onSuccess = {
+                        SaveResult.Success(
+                            uri = outputResult.outputFile.contentUri,
+                            fileName = outputResult.outputFile.fileName,
+                            location = OutputFolderManager.getOutputFolderPath(context)
+                        )
+                    },
+                    onFailure = { error ->
+                        outputResult.outputFile.file.delete()
+                        SaveResult.Error(error.message ?: "Operation failed")
+                    }
+                )
+            } catch (e: Exception) {
+                SaveResult.Error(e.message ?: "Operation failed")
+            }
+        }
+    }
+
+    suspend fun saveToCustomLocation(
+        context: android.content.Context,
+        outputUri: Uri,
+        writeContent: suspend (OutputStream) -> Result<Unit>
+    ): SaveResult {
+        return withContext(Dispatchers.IO) {
+            try {
+                val outputStream = context.contentResolver.openOutputStream(outputUri)
+
+                if (outputStream == null) {
+                    return@withContext SaveResult.Error("Cannot create output file")
+                }
+
+                val result = writeContent(outputStream)
+                outputStream.close()
+
+                result.fold(
+                    onSuccess = {
+                        SaveResult.Success(
+                            uri = outputUri,
+                            fileName = getFileName(context, outputUri),
+                            location = "Selected location"
+                        )
+                    },
+                    onFailure = { error ->
+                        SaveResult.Error(error.message ?: "Operation failed")
+                    }
+                )
+            } catch (e: Exception) {
+                SaveResult.Error(e.message ?: "Operation failed")
+            }
+        }
+    }
+
+    private fun getFileName(context: android.content.Context, uri: Uri): String {
+        return try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) cursor.getString(nameIndex) else "output.pdf"
+                } else "output.pdf"
+            } ?: "output.pdf"
+        } catch (e: Exception) {
+            "output.pdf"
+        }
+    }
+}
+
 @Composable
 fun ActionButton(
     text: String,
     onClick: () -> Unit,
-    enabled: Boolean = true,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
     isLoading: Boolean = false,
-    icon: ImageVector? = null,
-    modifier: Modifier = Modifier
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
@@ -69,7 +219,7 @@ fun ActionButton(
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp),
-        shape = MaterialTheme.shapes.medium
+        shape = RoundedCornerShape(16.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -77,58 +227,45 @@ fun ActionButton(
                 color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )
-            Spacer(modifier = Modifier.width(12.dp))
-        } else if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
+        } else {
+            Icon(imageVector = icon, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
-        Text(
-            text = if (isLoading) stringResource(R.string.action_processing) else text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }
 
-/**
- * Progress indicator for long-running operations.
- */
 @Composable
 fun OperationProgress(
     progress: Float,
     message: String,
     modifier: Modifier = Modifier
 ) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 300),
-        label = "progress"
-    )
-    
     Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         LinearProgressIndicator(
-            progress = animatedProgress,
+            progress = progress,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp),
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "${(animatedProgress * 100).toInt()}%",
+            text = "${(progress * 100).toInt()}%",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
@@ -136,9 +273,6 @@ fun OperationProgress(
     }
 }
 
-/**
- * Empty state placeholder when no files are selected.
- */
 @Composable
 fun EmptyState(
     icon: ImageVector,
@@ -153,32 +287,35 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        Surface(
+            modifier = Modifier.size(80.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.padding(20.dp).fillMaxSize(),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
-/**
- * Result dialog shown after operation completion.
- */
 @Composable
 fun ResultDialog(
     isSuccess: Boolean,
@@ -186,79 +323,59 @@ fun ResultDialog(
     message: String,
     onDismiss: () -> Unit,
     onAction: (() -> Unit)? = null,
-    actionText: String = "Open"
+    actionText: String? = null
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = if (isSuccess) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    }
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
+                contentDescription = null,
+                tint = if (isSuccess) androidx.compose.ui.graphics.Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp)
+            )
+        },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            if (onAction != null && actionText != null) {
+                Button(
+                    onClick = {
+                        onAction()
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.action_close))
-                    }
-                    
-                    if (onAction != null && isSuccess) {
-                        Button(
-                            onClick = onAction,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = actionText)
-                        }
-                    }
+                    Text(actionText)
                 }
             }
-        }
-    }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (onAction != null) "Close" else "OK")
+            }
+        },
+        shape = RoundedCornerShape(28.dp)
+    )
 }
 
 /**
- * File item card showing selected file information.
+ * Common card for displaying a selected file with its info and a remove button.
  */
 @Composable
 fun FileItemCard(
@@ -271,53 +388,49 @@ fun FileItemCard(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Text(
-                        text = stringResource(R.string.label_pdf),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    modifier = Modifier.padding(10.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
             
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = fileName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
                 Text(
                     text = fileSize,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
             IconButton(onClick = onRemove) {
                 Icon(
-                    imageVector = Icons.Default.Clear,
-                    contentDescription = stringResource(R.string.action_remove),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove",
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }

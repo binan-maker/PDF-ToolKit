@@ -87,12 +87,16 @@ fun PdfThumbnailGrid(
         Box(
             modifier = Modifier
                 .padding(6.dp)
-                .size(24.dp)
+                .size(27.dp)
                 .background(
-                    color = if (isSel) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.4f),
+                    color = if (isSel) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        Color.Black.copy(alpha = 0.46f)
+                    },
                     shape = CircleShape
                 )
-                .border(1.5.dp, Color.White, CircleShape),
+                .border(1.5.dp, Color.White.copy(alpha = 0.92f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (isSel) {
@@ -179,16 +183,20 @@ fun PdfThumbnailCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(0.75f)
-            .clip(RoundedCornerShape(8.dp))
+            .aspectRatio(0.73f)
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .border(
-                width = 2.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = RoundedCornerShape(8.dp)
+                width = if (isSelected) 3.dp else 1.dp,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+                },
+                shape = RoundedCornerShape(16.dp)
             ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

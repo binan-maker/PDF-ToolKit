@@ -5,14 +5,8 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -21,13 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yourname.pdftoolkit.data.FileManager
 import com.yourname.pdftoolkit.data.HistoryManager
 import com.yourname.pdftoolkit.data.OperationType
@@ -310,6 +301,7 @@ fun ReorderScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ToolTopBar(
                 title = "Reorder Pages",
@@ -348,7 +340,7 @@ fun ReorderScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = 18.dp, vertical = 8.dp)
                     ) {
                         // Selected file info
                         FileItemCard(
@@ -364,36 +356,73 @@ fun ReorderScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Instructions and reset
-                        Row(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Tap a page to select, then use arrows to move",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (hasOrderChanged) {
-                                    Text(
-                                        text = "Pages have been reordered",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                            shape = RoundedCornerShape(18.dp),
+                            color = if (hasOrderChanged) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
                             }
-
-                            if (hasOrderChanged) {
-                                TextButton(onClick = { resetOrder() }) {
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Icon(
-                                        Icons.Default.Refresh,
+                                        imageVector = if (hasOrderChanged) {
+                                            Icons.Default.AutoAwesome
+                                        } else {
+                                            Icons.Default.TouchApp
+                                        },
                                         contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                                        tint = if (hasOrderChanged) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Reset")
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = if (hasOrderChanged) {
+                                                "New order ready"
+                                            } else {
+                                                "Tap a page to move it"
+                                            },
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (hasOrderChanged) {
+                                                "Your changes are unsaved"
+                                            } else {
+                                                "Select one page, then use the controls below"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                if (hasOrderChanged) {
+                                    TextButton(onClick = { resetOrder() }) {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Reset")
+                                    }
                                 }
                             }
                         }
@@ -435,21 +464,66 @@ fun ReorderScreen(
                         // Action buttons for reordering
                         if (selectedPageIndex != null) {
                             val index = selectedPageIndex!!
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
                             ) {
-                                IconButton(onClick = { moveToFirst(index) }, enabled = index > 0) {
-                                    Icon(Icons.Default.KeyboardDoubleArrowLeft, "First")
-                                }
-                                IconButton(onClick = { movePageUp(index) }, enabled = index > 0) {
-                                    Icon(Icons.Default.KeyboardArrowLeft, "Previous")
-                                }
-                                IconButton(onClick = { movePageDown(index) }, enabled = index < pages.size - 1) {
-                                    Icon(Icons.Default.KeyboardArrowRight, "Next")
-                                }
-                                IconButton(onClick = { moveToLast(index) }, enabled = index < pages.size - 1) {
-                                    Icon(Icons.Default.KeyboardDoubleArrowRight, "Last")
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "MOVE SELECTED PAGE",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.2.sp,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Text(
+                                            text = "PAGE ${index + 1} OF ${pages.size}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        ReorderControl(
+                                            icon = Icons.Default.KeyboardDoubleArrowLeft,
+                                            label = "First",
+                                            enabled = index > 0,
+                                            onClick = { moveToFirst(index) }
+                                        )
+                                        ReorderControl(
+                                            icon = Icons.Default.KeyboardArrowLeft,
+                                            label = "Previous",
+                                            enabled = index > 0,
+                                            onClick = { movePageUp(index) }
+                                        )
+                                        ReorderControl(
+                                            icon = Icons.Default.KeyboardArrowRight,
+                                            label = "Next",
+                                            enabled = index < pages.size - 1,
+                                            onClick = { movePageDown(index) }
+                                        )
+                                        ReorderControl(
+                                            icon = Icons.Default.KeyboardDoubleArrowRight,
+                                            label = "Last",
+                                            enabled = index < pages.size - 1,
+                                            onClick = { moveToLast(index) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -482,12 +556,14 @@ fun ReorderScreen(
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 3.dp
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 5.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(horizontal = 18.dp, vertical = 16.dp)
                 ) {
                     if (selectedFile == null) {
                         ActionButton(
@@ -495,7 +571,7 @@ fun ReorderScreen(
                             onClick = {
                                 pickPdfLauncher.safeLaunch(arrayOf("application/pdf"), context)
                             },
-                            icon = Icons.Default.FolderOpen
+                            icon = Icons.Default.FolderOpen,
                         )
                     } else {
                         // Save location option
@@ -540,6 +616,43 @@ fun ReorderScreen(
                 { scope.launch(Dispatchers.IO) { FileOpener.openPdf(context, uri) } }
             },
             actionText = "Open PDF"
+        )
+    }
+}
+
+@Composable
+private fun ReorderControl(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(66.dp)
+    ) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (enabled) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.35f)
+                },
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                alpha = if (enabled) 0.82f else 0.35f
+            ),
+            maxLines = 1
         )
     }
 }

@@ -8,12 +8,9 @@ import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -574,7 +571,7 @@ fun ConvertScreen(
                             onClick = {
                                 pickImagesLauncher.safeLaunch(arrayOf("image/*"), context)
                             },
-                            icon = Icons.Default.Image
+                            icon = Icons.Default.Image,
                         )
                     } else {
                         // Save location option
@@ -595,8 +592,8 @@ fun ConvertScreen(
                                     convertWithDefaultLocation()
                                 }
                             },
+                            icon = Icons.Default.Transform,
                             isLoading = isProcessing,
-                            icon = Icons.Default.Transform
                         )
                     }
                 }

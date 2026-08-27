@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -166,6 +167,7 @@ fun ToolsScreen(
     val isDarkTheme = isSystemInDarkTheme()
     val homeColors = remember(isDarkTheme) { HomeColors.forTheme(isDarkTheme) }
     var selectedSection by remember { mutableStateOf<ToolSection?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
 
     fun openTool(tool: ToolItem) {
         if (tool.screen == Screen.Home && tool.id == "view_pdf") {
@@ -180,6 +182,18 @@ fun ToolsScreen(
         }
     }
 
+    val normalizedQuery = searchQuery.trim()
+    val matchingTools = allTools.filter { tool ->
+        val title = tool.getTitle()
+        val description = tool.getDescription()
+        normalizedQuery.isBlank() ||
+                title.contains(normalizedQuery, ignoreCase = true) ||
+                description.contains(normalizedQuery, ignoreCase = true)
+    }
+    val visibleTools = matchingTools.filter { tool ->
+        selectedSection == null || tool.section == selectedSection
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -187,8 +201,8 @@ fun ToolsScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 32.dp)
+            verticalArrangement = Arrangement.spacedBy(22.dp),
+            contentPadding = PaddingValues(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 40.dp)
         ) {
             item {
                 HomeHero(
@@ -200,6 +214,14 @@ fun ToolsScreen(
             }
 
             item {
+                ToolSearchField(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    colors = homeColors
+                )
+            }
+
+            item {
                 ToolFilterRail(
                     selectedSection = selectedSection,
                     onSectionSelected = { selectedSection = it },
@@ -207,10 +229,32 @@ fun ToolsScreen(
                 )
             }
 
+            if (selectedSection == null && normalizedQuery.isBlank()) {
+                item {
+                    LaunchRail(
+                        tools = allTools.filter { it.section == ToolSection.QUICK_ACTIONS },
+                        colors = homeColors,
+                        onToolClick = ::openTool
+                    )
+                }
+            }
+
+            if (visibleTools.isEmpty()) {
+                item {
+                    EmptyToolSearch(
+                        query = normalizedQuery,
+                        colors = homeColors
+                    )
+                }
+            }
+
             ToolSection.entries
-                .filter { selectedSection == null || it == selectedSection }
+                .filter {
+                    (selectedSection == null || it == selectedSection) &&
+                            !(selectedSection == null && normalizedQuery.isBlank() && it == ToolSection.QUICK_ACTIONS)
+                }
                 .forEach { section ->
-                    val sectionTools = allTools.filter { it.section == section }
+                    val sectionTools = visibleTools.filter { it.section == section }
                     if (sectionTools.isNotEmpty()) {
                         item {
                             HomeSectionHeading(
@@ -247,25 +291,25 @@ private data class HomeColors(
         fun forTheme(isDark: Boolean): HomeColors {
             return if (isDark) {
                 HomeColors(
-                    canvas = Color(0xFF111116),
-                    card = Color(0xFF1A1A21),
-                    cardStrong = Color(0xFF24242D),
-                    ink = Color(0xFFF5F3F7),
-                    muted = Color(0xFFB4AFBC),
-                    accent = Color(0xFFFF826D),
-                    accentSoft = Color(0xFF3A2425),
-                    iconColors = listOf(Color(0xFFFF826D), Color(0xFFB69CFF), Color(0xFF62D6C1), Color(0xFFFFC46B))
+                    canvas = Color(0xFF101114),
+                    card = Color(0xFF1A1B20),
+                    cardStrong = Color(0xFF25212F),
+                    ink = Color(0xFFF8F7FA),
+                    muted = Color(0xFFAAA7B2),
+                    accent = Color(0xFFFF725F),
+                    accentSoft = Color(0xFF3A2527),
+                    iconColors = listOf(Color(0xFFFF725F), Color(0xFFAD91FF), Color(0xFF52D3B2), Color(0xFFFFC968))
                 )
             } else {
                 HomeColors(
-                    canvas = Color(0xFFF8F7FB),
-                    card = Color(0xFFFFFFFF),
-                    cardStrong = Color(0xFF1E1D29),
-                    ink = Color(0xFF1E1D29),
+                    canvas = Color(0xFFF5F3EF),
+                    card = Color(0xFFFFFEFC),
+                    cardStrong = Color(0xFF211E2D),
+                    ink = Color(0xFF211F28),
                     muted = Color(0xFF777481),
-                    accent = Color(0xFFFF6B57),
-                    accentSoft = Color(0xFFFFE6DF),
-                    iconColors = listOf(Color(0xFFFF6B57), Color(0xFF7658E8), Color(0xFF159A87), Color(0xFFCA7B00))
+                    accent = Color(0xFFFF624F),
+                    accentSoft = Color(0xFFFFE4DE),
+                    iconColors = listOf(Color(0xFFFF624F), Color(0xFF7256E8), Color(0xFF118F7C), Color(0xFFC27B10))
                 )
             }
         }
@@ -281,9 +325,8 @@ private fun HomeHero(
     Card(
         onClick = onOpenPdf,
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(30.dp),
         colors = CardDefaults.cardColors(containerColor = colors.cardStrong),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -292,33 +335,55 @@ private fun HomeHero(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(colors.cardStrong, colors.cardStrong.copy(alpha = 0.86f), Color(0xFF3D315E))
+                        colors = listOf(
+                            colors.cardStrong,
+                            Color(0xFF312849),
+                            Color(0xFF5C3E58)
+                        )
                     )
                 )
                 .padding(24.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 34.dp, y = (-50).dp)
+                    .size(176.dp)
+                    .clip(RoundedCornerShape(100))
+                    .background(Color.White.copy(alpha = 0.06f))
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 58.dp, y = 64.dp)
+                    .size(128.dp)
+                    .clip(RoundedCornerShape(100))
+                    .background(colors.accent.copy(alpha = 0.14f))
+            )
+
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.accent.copy(alpha = 0.18f)
+                    shape = RoundedCornerShape(50),
+                    color = Color.White.copy(alpha = 0.10f)
                 ) {
                     Text(
-                        text = stringResource(R.string.home_hero_eyebrow),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "PAPERLY  /  PRIVATE BY DEFAULT",
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = MaterialTheme.typography.labelSmall.letterSpacing,
-                        color = colors.accent
+                        letterSpacing = 1.1.sp,
+                        color = Color.White.copy(alpha = 0.82f)
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = stringResource(R.string.home_hero_title),
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        lineHeight = MaterialTheme.typography.headlineMedium.lineHeight
+                        lineHeight = 39.sp,
+                        letterSpacing = (-0.7).sp
                     )
                     Text(
                         text = stringResource(R.string.home_subtitle),
@@ -327,28 +392,123 @@ private fun HomeHero(
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = colors.accent
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Button(
+                        onClick = onOpenPdf,
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.accent,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 15.dp, vertical = 11.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.UploadFile,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(18.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.fab_open_pdf),
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            fontWeight = FontWeight.Bold
                         )
                     }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        modifier = Modifier.padding(end = 3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(0xFF66E0B2))
+                        )
+                        Text(
+                            text = "ON-DEVICE",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = Color.White.copy(alpha = 0.76f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    colors: HomeColors
+) {
+    Surface(
+        shape = RoundedCornerShape(19.dp),
+        color = colors.card,
+        border = BorderStroke(1.dp, colors.ink.copy(alpha = 0.08f)),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 15.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search tools",
+                tint = colors.accent,
+                modifier = Modifier.size(21.dp)
+            )
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 11.dp, vertical = 16.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = colors.ink,
+                    fontWeight = FontWeight.Medium
+                ),
+                decorationBox = { innerTextField ->
+                    if (query.isBlank()) {
+                        Text(
+                            text = "Search tools by name or task",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.muted
+                        )
+                    }
+                    innerTextField()
+                }
+            )
+            if (query.isNotBlank()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear search",
+                        tint = colors.muted
+                    )
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(9.dp),
+                    color = colors.canvas
+                ) {
+                    Text(
+                        text = "⌘ K",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.muted
+                    )
                 }
             }
         }
@@ -407,34 +567,26 @@ private fun ToolFilterRail(
     onSectionSelected: (ToolSection?) -> Unit,
     colors: HomeColors
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        HomeSectionHeading(
-            eyebrow = stringResource(R.string.category_quick_actions).uppercase(),
-            title = stringResource(R.string.home_quick_actions_title),
-            colors = colors
-        )
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(end = 4.dp)
-        ) {
-            item {
-                ToolFilterChip(
-                    label = stringResource(R.string.tools_all),
-                    selected = selectedSection == null,
-                    color = colors.accent,
-                    onClick = { onSectionSelected(null) }
-                )
-            }
-            items(ToolSection.entries.size) { index ->
-                val section = ToolSection.entries[index]
-                ToolFilterChip(
-                    label = getSectionTitle(section),
-                    selected = selectedSection == section,
-                    color = colors.iconColors[section.ordinal % colors.iconColors.size],
-                    onClick = { onSectionSelected(section) }
-                )
-            }
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(end = 4.dp)
+    ) {
+        item {
+            ToolFilterChip(
+                label = stringResource(R.string.tools_all),
+                selected = selectedSection == null,
+                color = colors.accent,
+                onClick = { onSectionSelected(null) }
+            )
+        }
+        items(ToolSection.entries.size) { index ->
+            val section = ToolSection.entries[index]
+            ToolFilterChip(
+                label = getSectionTitle(section),
+                selected = selectedSection == section,
+                color = colors.iconColors[section.ordinal % colors.iconColors.size],
+                onClick = { onSectionSelected(section) }
+            )
         }
     }
 }
@@ -470,6 +622,129 @@ private fun ToolFilterChip(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LaunchRail(
+    tools: List<ToolItem>,
+    colors: HomeColors,
+    onToolClick: (ToolItem) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
+        HomeSectionHeading(
+            eyebrow = stringResource(R.string.category_quick_actions).uppercase(),
+            title = stringResource(R.string.home_quick_actions_title),
+            count = tools.size,
+            colors = colors
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(end = 4.dp)
+        ) {
+            items(tools.size) { index ->
+                val tool = tools[index]
+                val accent = colors.iconColors[index % colors.iconColors.size]
+                Card(
+                    onClick = { onToolClick(tool) },
+                    modifier = Modifier
+                        .width(184.dp)
+                        .height(148.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = accent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(13.dp),
+                                color = Color.White.copy(alpha = 0.18f),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = tool.icon,
+                                    contentDescription = tool.getTitle(),
+                                    tint = Color.White,
+                                    modifier = Modifier.padding(9.dp)
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ArrowOutward,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.72f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                text = tool.getTitle(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Tap to get started",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.74f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyToolSearch(
+    query: String,
+    colors: HomeColors
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = colors.card,
+        border = BorderStroke(1.dp, colors.ink.copy(alpha = 0.08f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.SearchOff,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(32.dp)
+            )
+            Text(
+                text = "Nothing matched “$query”",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.ink,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Try a different word, like merge, scan, or image.",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.muted,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -532,14 +807,14 @@ private fun ToolCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(148.dp),
-        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.height(152.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = colors.card
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = colors.iconColors[tool.section.ordinal % colors.iconColors.size].copy(alpha = 0.18f)
+            color = colors.iconColors[tool.section.ordinal % colors.iconColors.size].copy(alpha = 0.15f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -548,7 +823,7 @@ private fun ToolCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .padding(15.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
@@ -559,7 +834,7 @@ private fun ToolCard(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = accent.copy(alpha = 0.14f),
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(44.dp)
                 ) {
                     Icon(
                         imageVector = tool.icon,
@@ -585,7 +860,7 @@ private fun ToolCard(
             ) {
                 Text(
                     text = tool.getTitle(),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start,
                     maxLines = 1,
