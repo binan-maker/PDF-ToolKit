@@ -377,8 +377,3 @@ fun ExtractTextScreen(
         )
     }
 }
-
-@Composable
-fun FileItemCard(fileName: String, fileSize: String, onRemove: () -> Unit) {
-    TODO("Not yet implemented")
-}

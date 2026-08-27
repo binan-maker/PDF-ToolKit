@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.yourname.pdftoolkit.R
@@ -355,10 +356,14 @@ fun AppNavigation(
 
     // Track session cache file for cleanup when viewer closes
     val sessionCacheFile = remember { mutableStateOf<File?>(null) }
+    // Keep the main header pinned while the home content scrolls underneath it.
+    val topBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(topBarScrollBehavior.nestedScrollConnection),
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 if (showTopBar) {
@@ -434,7 +439,8 @@ fun AppNavigation(
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface
-                        )
+                        ),
+                        scrollBehavior = topBarScrollBehavior
                     )
                 }
             },

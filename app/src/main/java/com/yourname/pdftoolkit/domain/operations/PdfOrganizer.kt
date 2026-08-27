@@ -26,7 +26,7 @@ data class OrganizeResult(
  * Supports removing pages, reordering pages, and reorganizing PDFs.
  */
 class PdfOrganizer {
-    
+
     /**
      * Remove specific pages from a PDF.
      * 
@@ -45,24 +45,24 @@ class PdfOrganizer {
         onProgress: (Float) -> Unit = {}
     ): Result<OrganizeResult> = withContext(Dispatchers.IO) {
         var document: PDDocument? = null
-        
+
         try {
             onProgress(0.1f)
-            
+
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
                 )
-            
+
             document = PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
             val originalPageCount = document.numberOfPages
-            
+
             if (originalPageCount == 0) {
                 return@withContext Result.failure(
                     IllegalStateException("PDF has no pages")
                 )
             }
-            
+
             // Validate page numbers
             val invalidPages = pagesToRemove.filter { it < 1 || it > originalPageCount }
             if (invalidPages.isNotEmpty()) {
@@ -70,35 +70,35 @@ class PdfOrganizer {
                     IllegalArgumentException("Invalid page numbers: $invalidPages (document has $originalPageCount pages)")
                 )
             }
-            
+
             // Check that we're not removing all pages
             if (pagesToRemove.size >= originalPageCount) {
                 return@withContext Result.failure(
                     IllegalArgumentException("Cannot remove all pages from the document")
                 )
             }
-            
+
             onProgress(0.3f)
-            
+
             // Remove pages in reverse order to maintain correct indices
             val sortedPagesToRemove = pagesToRemove.sortedDescending()
-            
+
             sortedPagesToRemove.forEachIndexed { index, pageNum ->
                 // Convert to 0-indexed
                 document.removePage(pageNum - 1)
-                
+
                 val removeProgress = 0.3f + (0.5f * (index + 1).toFloat() / sortedPagesToRemove.size)
                 onProgress(removeProgress)
             }
-            
+
             onProgress(0.9f)
-            
+
             // Save the document
             document.save(outputStream)
             outputStream.flush()
-            
+
             onProgress(1.0f)
-            
+
             Result.success(
                 OrganizeResult(
                     originalPageCount = originalPageCount,
@@ -107,14 +107,14 @@ class PdfOrganizer {
                     pagesReordered = false
                 )
             )
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Reorder pages in a PDF according to a new order.
      * 
@@ -134,24 +134,24 @@ class PdfOrganizer {
     ): Result<OrganizeResult> = withContext(Dispatchers.IO) {
         var sourceDocument: PDDocument? = null
         var resultDocument: PDDocument? = null
-        
+
         try {
             onProgress(0.1f)
-            
+
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
                 )
-            
+
             sourceDocument = PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
             val originalPageCount = sourceDocument.numberOfPages
-            
+
             if (originalPageCount == 0) {
                 return@withContext Result.failure(
                     IllegalStateException("PDF has no pages")
                 )
             }
-            
+
             // Validate new order
             val invalidPages = newOrder.filter { it < 1 || it > originalPageCount }
             if (invalidPages.isNotEmpty()) {
@@ -159,37 +159,37 @@ class PdfOrganizer {
                     IllegalArgumentException("Invalid page numbers: $invalidPages (document has $originalPageCount pages)")
                 )
             }
-            
+
             if (newOrder.isEmpty()) {
                 return@withContext Result.failure(
                     IllegalArgumentException("New order cannot be empty")
                 )
             }
-            
+
             onProgress(0.2f)
-            
+
             // Create new document with pages in new order
             resultDocument = PDDocument()
-            
+
             newOrder.forEachIndexed { index, pageNum ->
                 // Get the page from source (0-indexed)
                 val page = sourceDocument.getPage(pageNum - 1)
-                
+
                 // Import the page to the new document
                 resultDocument.importPage(page)
-                
+
                 val reorderProgress = 0.2f + (0.7f * (index + 1).toFloat() / newOrder.size)
                 onProgress(reorderProgress)
             }
-            
+
             onProgress(0.95f)
-            
+
             // Save the reordered document
             resultDocument.save(outputStream)
             outputStream.flush()
-            
+
             onProgress(1.0f)
-            
+
             Result.success(
                 OrganizeResult(
                     originalPageCount = originalPageCount,
@@ -198,7 +198,7 @@ class PdfOrganizer {
                     pagesReordered = true
                 )
             )
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
@@ -206,7 +206,7 @@ class PdfOrganizer {
             resultDocument?.close()
         }
     }
-    
+
     /**
      * Reorder and optionally remove pages in one operation.
      * Only pages in the newOrder list will be included in the output.
@@ -228,7 +228,7 @@ class PdfOrganizer {
         // Reorder handles both reordering and removal
         return reorderPages(context, inputUri, outputStream, newOrder, onProgress)
     }
-    
+
     /**
      * Reverse the order of all pages in a PDF.
      * 
@@ -245,40 +245,40 @@ class PdfOrganizer {
         onProgress: (Float) -> Unit = {}
     ): Result<OrganizeResult> = withContext(Dispatchers.IO) {
         var document: PDDocument? = null
-        
+
         try {
             onProgress(0.1f)
-            
+
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
                 )
-            
+
             document = PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
             val pageCount = document.numberOfPages
-            
+
             if (pageCount == 0) {
                 return@withContext Result.failure(
                     IllegalStateException("PDF has no pages")
                 )
             }
-            
+
             // Create reversed order: [n, n-1, ..., 2, 1]
             val reversedOrder = (pageCount downTo 1).toList()
-            
+
             document.close()
             document = null
-            
+
             // Reuse reorderPages for the actual work
             reorderPages(context, inputUri, outputStream, reversedOrder, onProgress)
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Duplicate specific pages in a PDF.
      * 
@@ -297,24 +297,24 @@ class PdfOrganizer {
         onProgress: (Float) -> Unit = {}
     ): Result<OrganizeResult> = withContext(Dispatchers.IO) {
         var document: PDDocument? = null
-        
+
         try {
             onProgress(0.1f)
-            
+
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
                 )
-            
+
             document = PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
             val originalPageCount = document.numberOfPages
-            
+
             if (originalPageCount == 0) {
                 return@withContext Result.failure(
                     IllegalStateException("PDF has no pages")
                 )
             }
-            
+
             // Build the new order with duplicates
             val newOrder = mutableListOf<Int>()
             for (pageNum in 1..originalPageCount) {
@@ -323,20 +323,20 @@ class PdfOrganizer {
                     newOrder.add(pageNum)
                 }
             }
-            
+
             document.close()
             document = null
-            
+
             // Reuse reorderPages
             reorderPages(context, inputUri, outputStream, newOrder, onProgress)
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Get the page count of a PDF.
      */
@@ -395,7 +395,7 @@ class PdfOrganizer {
             }
         }
     }
-    
+
     /**
      * Generate thumbnails for all pages in a PDF.
      * 
@@ -507,35 +507,35 @@ class PdfOrganizer {
             if (pfd != null) {
                 renderer = PdfRenderer(pfd)
                 val pageCount = renderer.pageCount
-                
+
                 for (i in 0 until pageCount) {
                     val page = renderer.openPage(i)
-                    
+
                     // Calculate scaled dimensions maintaining aspect ratio
                     val pageWidth = page.width
                     val pageHeight = page.height
                     val scale = minOf(width.toFloat() / pageWidth, height.toFloat() / pageHeight)
-                    val scaledWidth = (pageWidth * scale).toInt()
-                    val scaledHeight = (pageHeight * scale).toInt()
-                    
+                    val scaledWidth = maxOf(1, (pageWidth * scale).toInt())
+                    val scaledHeight = maxOf(1, (pageHeight * scale).toInt())
+
                     val bitmap = android.graphics.Bitmap.createBitmap(
                         scaledWidth,
                         scaledHeight,
                         android.graphics.Bitmap.Config.ARGB_8888
                     )
-                    
+
                     // Fill with white background
                     bitmap.eraseColor(android.graphics.Color.WHITE)
-                    
+
                     page.render(
                         bitmap,
                         null,
                         null,
                         PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
                     )
-                    
+
                     page.close()
-                    
+
                     // Send thumbnail via callback (1-indexed page number)
                     callback(i + 1, bitmap)
                 }

@@ -41,13 +41,10 @@ import kotlinx.coroutines.launch
 
 // Global or shared cache for thumbnails. Max size in bytes (e.g., 30MB)
 // For simplicity, sizing by count. E.g. 100 bitmaps max.
-private val thumbnailCache = object : LruCache<String, Bitmap>(100) {
-    override fun entryRemoved(evicted: Boolean, key: String?, oldValue: Bitmap?, newValue: Bitmap?) {
-        if (evicted && oldValue != newValue && oldValue?.isRecycled == false) {
-            oldValue.recycle()
-        }
-    }
-}
+// Compose may still be drawing a bitmap after it is evicted from this cache.
+// Let the GC reclaim evicted bitmaps instead of recycling them manually, which
+// can make a still-visible thumbnail crash with "trying to use a recycled bitmap".
+private val thumbnailCache = LruCache<String, Bitmap>(100)
 
 // Semaphore to limit concurrent thumbnail generations
 private val renderSemaphore = Semaphore(4)
@@ -158,25 +155,27 @@ fun PdfThumbnailCard(
             return@LaunchedEffect
         }
 
-        withContext(Dispatchers.IO) {
+        val loadedBitmap = withContext(Dispatchers.IO) {
             renderSemaphore.withPermit {
                 try {
                     // Assuming grid width is around 100-150dp per column, scaling to pixel approx
-                    val bmp = organizer.getPageThumbnail(
+                    organizer.getPageThumbnail(
                         context = context,
                         uri = uri,
                         pageIndex = pageNumber - 1, // 0-based for PdfRenderer
                         width = 200, // Slightly smaller to save memory
                         height = 280
                     )
-                    if (bmp != null) {
-                        thumbnailCache.put(cacheKey, bmp)
-                        thumbnail = bmp
-                    }
                 } catch (e: Exception) {
                     // Fallback to placeholder on error
+                    null
                 }
             }
+        }
+
+        loadedBitmap?.let { bmp ->
+            thumbnailCache.put(cacheKey, bmp)
+            thumbnail = bmp
         }
     }
 

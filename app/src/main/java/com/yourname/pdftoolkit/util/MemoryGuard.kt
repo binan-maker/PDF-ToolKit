@@ -8,9 +8,12 @@ object MemoryGuard {
     fun checkMemory(operationName: String) {
         val runtime = Runtime.getRuntime()
         val freeMb = (runtime.maxMemory() - runtime.totalMemory()
-                      + runtime.freeMemory()) / (1024 * 1024)
+                + runtime.freeMemory()) / (1024 * 1024)
         if (freeMb < MIN_FREE_MB) {
-            throw OutOfMemoryError(
+            // Operations return Result.failure from their exception handlers.
+            // Do not throw an Error here: Errors bypass those handlers and crash
+            // the activity before the user can see a recoverable message.
+            throw IllegalStateException(
                 "Insufficient memory for $operationName: ${freeMb}MB available"
             )
         }

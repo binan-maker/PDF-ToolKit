@@ -16,13 +16,13 @@ import com.yourname.pdftoolkit.util.MemoryGuard
 sealed class SplitMode {
     /** Split into individual pages - one file per page */
     object AllPages : SplitMode()
-    
+
     /** Split by specific page ranges */
     data class ByRanges(val ranges: List<PageRange>) : SplitMode()
-    
+
     /** Split every N pages */
     data class EveryNPages(val n: Int) : SplitMode()
-    
+
     /** Extract specific pages */
     data class SpecificPages(val pages: List<Int>) : SplitMode()
 }
@@ -50,7 +50,7 @@ data class SplitResult(
  * Splits a PDF into multiple documents based on various criteria.
  */
 class PdfSplitter {
-    
+
     /**
      * Split a PDF into individual pages.
      * 
@@ -66,10 +66,10 @@ class PdfSplitter {
         outputCallback: suspend (pageNumber: Int, inputStream: java.io.InputStream) -> Unit,
         onProgress: (Float) -> Unit = {}
     ): Result<SplitResult> = withContext(Dispatchers.IO) {
-        MemoryGuard.checkMemory("splitAllPages")
         var document: PDDocument? = null
-        
+
         try {
+            MemoryGuard.checkMemory("splitAllPages")
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
@@ -82,42 +82,42 @@ class PdfSplitter {
                 IllegalStateException("Failed to load input PDF")
             )
             val totalPages = loadedDocument.numberOfPages
-            
+
             if (totalPages == 0) {
                 return@withContext Result.failure(
                     IllegalStateException("PDF has no pages")
                 )
             }
-            
+
             for (pageIndex in 0 until totalPages) {
                 // Create new document with single page
                 PDDocument().use { newDoc ->
                     val page = loadedDocument.getPage(pageIndex)
                     newDoc.importPage(page)
-                    
+
                     // Save to byte array first, then pass to callback
                     val byteArrayOutputStream = java.io.ByteArrayOutputStream()
                     newDoc.save(byteArrayOutputStream)
                     val byteArray = byteArrayOutputStream.toByteArray()
-                    
+
                     // Pass bytes to callback
                     java.io.ByteArrayInputStream(byteArray).use { inputStream ->
                         outputCallback(pageIndex + 1, inputStream)
                     }
                 }
-                
+
                 onProgress((pageIndex + 1).toFloat() / totalPages)
             }
-            
+
             Result.success(SplitResult(totalPages, totalPages))
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Split PDF by page ranges.
      */
@@ -128,10 +128,10 @@ class PdfSplitter {
         outputCallback: suspend (rangeIndex: Int, inputStream: java.io.InputStream) -> Unit,
         onProgress: (Float) -> Unit = {}
     ): Result<SplitResult> = withContext(Dispatchers.IO) {
-        MemoryGuard.checkMemory("splitByRanges")
         var document: PDDocument? = null
-        
+
         try {
+            MemoryGuard.checkMemory("splitByRanges")
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
@@ -145,7 +145,7 @@ class PdfSplitter {
             )
             val totalPages = loadedDocument.numberOfPages
             var totalPagesProcessed = 0
-            
+
             ranges.forEachIndexed { rangeIndex, range ->
                 // Validate range
                 if (range.start > totalPages || range.end > totalPages) {
@@ -153,37 +153,37 @@ class PdfSplitter {
                         IllegalArgumentException("Page range ${range.start}-${range.end} exceeds document pages ($totalPages)")
                     )
                 }
-                
+
                 PDDocument().use { newDoc ->
                     for (pageNum in range.start..range.end) {
                         val page = loadedDocument.getPage(pageNum - 1) // 0-indexed
                         newDoc.importPage(page)
                         totalPagesProcessed++
                     }
-                    
+
                     // Save to byte array first, then pass to callback
                     val byteArrayOutputStream = java.io.ByteArrayOutputStream()
                     newDoc.save(byteArrayOutputStream)
                     val byteArray = byteArrayOutputStream.toByteArray()
-                    
+
                     // Pass bytes to callback
                     java.io.ByteArrayInputStream(byteArray).use { inputStream ->
                         outputCallback(rangeIndex + 1, inputStream)
                     }
                 }
-                
+
                 onProgress((rangeIndex + 1).toFloat() / ranges.size)
             }
-            
+
             Result.success(SplitResult(ranges.size, totalPagesProcessed))
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Extract specific pages from a PDF into a new document.
      */
@@ -194,10 +194,10 @@ class PdfSplitter {
         outputStream: OutputStream,
         onProgress: (Float) -> Unit = {}
     ): Result<Int> = withContext(Dispatchers.IO) {
-        MemoryGuard.checkMemory("extractPages")
         var document: PDDocument? = null
-        
+
         try {
+            MemoryGuard.checkMemory("extractPages")
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
@@ -210,7 +210,7 @@ class PdfSplitter {
                 IllegalStateException("Failed to load input PDF")
             )
             val totalPages = loadedDocument.numberOfPages
-            
+
             // Validate page numbers
             val invalidPages = pageNumbers.filter { it < 1 || it > totalPages }
             if (invalidPages.isNotEmpty()) {
@@ -218,26 +218,26 @@ class PdfSplitter {
                     IllegalArgumentException("Invalid page numbers: $invalidPages (document has $totalPages pages)")
                 )
             }
-            
+
             PDDocument().use { newDoc ->
                 pageNumbers.forEachIndexed { index, pageNum ->
                     val page = loadedDocument.getPage(pageNum - 1) // 0-indexed
                     newDoc.importPage(page)
                     onProgress((index + 1).toFloat() / pageNumbers.size)
                 }
-                
+
                 newDoc.save(outputStream)
             }
-            
+
             Result.success(pageNumbers.size)
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Get the page count of a PDF.
      */
@@ -245,9 +245,9 @@ class PdfSplitter {
         context: Context,
         uri: Uri
     ): Int = withContext(Dispatchers.IO) {
-        MemoryGuard.checkMemory("getPageCount")
         var document: PDDocument? = null
         try {
+            MemoryGuard.checkMemory("getPageCount")
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 document = PDDocument.load(inputStream, MemoryUsageSetting.setupTempFileOnly())
                 document?.numberOfPages ?: 0
@@ -258,7 +258,7 @@ class PdfSplitter {
             document?.close()
         }
     }
-    
+
     /**
      * Extension to save PDDocument to an OutputStream.
      */

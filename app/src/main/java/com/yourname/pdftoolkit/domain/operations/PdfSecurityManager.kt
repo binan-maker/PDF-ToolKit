@@ -33,7 +33,7 @@ data class PdfSecurityOptions(
  * Handles PDF security operations (encryption/decryption).
  */
 class PdfSecurityManager {
-    
+
     /**
      * Add password protection to a PDF.
      * 
@@ -51,21 +51,21 @@ class PdfSecurityManager {
         options: PdfSecurityOptions,
         onProgress: (Float) -> Unit = {}
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        MemoryGuard.checkMemory("Encrypt PDF")
         var document: PDDocument? = null
-        
+
         try {
+            MemoryGuard.checkMemory("Encrypt PDF")
             onProgress(0.1f)
-            
+
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
                 )
-            
+
             document = PDDocument.load(inputStream)
-            
+
             onProgress(0.3f)
-            
+
             // Set up access permissions
             val accessPermission = AccessPermission().apply {
                 setCanPrint(options.allowPrinting)
@@ -73,9 +73,9 @@ class PdfSecurityManager {
                 setCanModify(options.allowModifying)
                 setCanModifyAnnotations(options.allowAnnotations)
             }
-            
+
             onProgress(0.5f)
-            
+
             // Create protection policy
             val protectionPolicy = StandardProtectionPolicy(
                 options.ownerPassword,
@@ -84,32 +84,32 @@ class PdfSecurityManager {
             ).apply {
                 encryptionKeyLength = options.keyLength
             }
-            
+
             // Apply protection
             document.protect(protectionPolicy)
-            
+
             onProgress(0.8f)
-            
+
             // Save encrypted document
             BufferedOutputStream(outputStream, 8192).use { buffered ->
                 document.save(buffered)
             }
-            
+
             onProgress(1.0f)
-            
+
             Result.success(Unit)
-            
+
         } catch (e: Exception) {
             Result.failure(e)
         } finally {
             document?.close()
         }
     }
-    
+
     /**
      * Remove password protection from a PDF.
      * Requires the correct password to decrypt.
-     * 
+     *
      * @param context Android context
      * @param inputUri URI of the encrypted PDF
      * @param outputStream Output stream for the decrypted PDF
@@ -124,42 +124,42 @@ class PdfSecurityManager {
         password: String,
         onProgress: (Float) -> Unit = {}
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        MemoryGuard.checkMemory("Decrypt PDF")
         var document: PDDocument? = null
-        
+
         try {
+            MemoryGuard.checkMemory("Decrypt PDF")
             onProgress(0.1f)
-            
+
             val inputStream = context.contentResolver.openInputStream(inputUri)
                 ?: return@withContext Result.failure(
                     IllegalStateException("Cannot open input file")
                 )
-            
+
             // Load with password
             document = PDDocument.load(inputStream, password)
-            
+
             onProgress(0.4f)
-            
+
             if (!document.isEncrypted) {
                 return@withContext Result.failure(
                     IllegalStateException("PDF is not encrypted")
                 )
             }
-            
+
             // Remove encryption by setting all permissions
             document.isAllSecurityToBeRemoved = true
-            
+
             onProgress(0.7f)
-            
+
             // Save decrypted document
             BufferedOutputStream(outputStream, 8192).use { buffered ->
                 document.save(buffered)
             }
-            
+
             onProgress(1.0f)
-            
+
             Result.success(Unit)
-            
+
         } catch (e: Exception) {
             when {
                 e.message?.contains("password", ignoreCase = true) == true ->
@@ -170,7 +170,7 @@ class PdfSecurityManager {
             document?.close()
         }
     }
-    
+
     /**
      * Check if a PDF is encrypted.
      */
@@ -189,7 +189,7 @@ class PdfSecurityManager {
             e.message?.contains("password", ignoreCase = true) == true
         }
     }
-    
+
     /**
      * Validate a password against an encrypted PDF.
      */
