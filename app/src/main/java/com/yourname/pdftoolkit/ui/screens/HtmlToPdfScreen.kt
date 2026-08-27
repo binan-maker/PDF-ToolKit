@@ -253,6 +253,16 @@ fun HtmlToPdfScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                 ) {
+                    item {
+                        PdfToolHeroCard(
+                            kicker = "CONVERT / WEB",
+                            title = "Turn the web\ninto a PDF.",
+                            description = "Paste a link or HTML and make a polished document in seconds.",
+                            leadingIcon = Icons.Default.Language,
+                            secondaryIcon = Icons.Default.PictureAsPdf
+                        )
+                    }
+
                     // Mode selection
                     if (hasNetworkUrlSupport) {
                         item {

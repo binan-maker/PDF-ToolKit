@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.domain.operations.FlattenConfig
 import com.yourname.pdftoolkit.domain.operations.PdfFlattener
+import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
 import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
@@ -188,6 +189,14 @@ fun FlattenScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PdfToolHeroCard(
+                kicker = "SECURITY / FINALIZE",
+                title = "Make it\nfinal-form ready.",
+                description = "Bake annotations and fields into the page so the look never changes.",
+                leadingIcon = Icons.Default.Layers,
+                secondaryIcon = Icons.Default.DoneAll
+            )
+
             // Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),

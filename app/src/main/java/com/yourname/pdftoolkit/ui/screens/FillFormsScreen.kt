@@ -26,6 +26,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.domain.operations.*
+import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
 import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
@@ -218,6 +219,14 @@ fun FillFormsScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PdfToolHeroCard(
+                kicker = "SECURITY / FORMS",
+                title = "Finish the\npaperwork faster.",
+                description = "Find form fields, fill them in, and keep the final copy close.",
+                leadingIcon = Icons.Default.EditNote,
+                secondaryIcon = Icons.Default.CheckCircle
+            )
+
             // Source PDF Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),

@@ -138,6 +138,15 @@ fun ExtractTextScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            PdfToolHeroCard(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                kicker = "CONVERT / TEXT",
+                title = "Give your PDF\na voice.",
+                description = "Extract clean, editable text from every page.",
+                leadingIcon = Icons.Default.TextFields,
+                secondaryIcon = Icons.Default.ContentCopy
+            )
+
             // Content area
             Box(
                 modifier = Modifier

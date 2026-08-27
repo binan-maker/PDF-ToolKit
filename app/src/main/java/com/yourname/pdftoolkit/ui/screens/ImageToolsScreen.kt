@@ -296,6 +296,15 @@ fun ImageToolsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            PdfToolHeroCard(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                kicker = "IMAGE LAB / ON DEVICE",
+                title = "Make every\npixel work harder.",
+                description = "Resize, compress, convert, or clean your images in one focused flow.",
+                leadingIcon = Icons.Default.Photo,
+                secondaryIcon = Icons.Default.AutoAwesome
+            )
+
             // Content area
             Box(
                 modifier = Modifier

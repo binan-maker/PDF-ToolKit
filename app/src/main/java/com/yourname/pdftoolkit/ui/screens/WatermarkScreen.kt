@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.data.HistoryManager
 import com.yourname.pdftoolkit.data.OperationType
 import com.yourname.pdftoolkit.domain.operations.*
+import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
 import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
@@ -263,6 +264,14 @@ fun WatermarkScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PdfToolHeroCard(
+                kicker = "SECURITY / IDENTITY",
+                title = "Make it\nunmistakably yours.",
+                description = "Add a subtle text or image mark without leaving your device.",
+                leadingIcon = Icons.Default.WaterDrop,
+                secondaryIcon = Icons.Default.PictureAsPdf
+            )
+
             // Source PDF Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),

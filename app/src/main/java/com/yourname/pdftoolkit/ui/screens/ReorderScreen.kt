@@ -340,7 +340,7 @@ fun ReorderScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 18.dp, vertical = 8.dp)
+                            .padding(start = 18.dp, end = 18.dp, bottom = 8.dp)
                     ) {
                         // Selected file info
                         FileItemCard(

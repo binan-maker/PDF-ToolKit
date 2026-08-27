@@ -188,6 +188,15 @@ fun PageNumberScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            PdfToolHeroCard(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                kicker = "VIEW / ORGANIZE",
+                title = "Give every page\nits place.",
+                description = "Add a clear, consistent page number style in a few taps.",
+                leadingIcon = Icons.Default.FormatListNumbered,
+                secondaryIcon = Icons.Default.PictureAsPdf
+            )
+
             // Content area
             Box(
                 modifier = Modifier

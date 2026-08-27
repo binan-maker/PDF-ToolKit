@@ -47,6 +47,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.yourname.pdftoolkit.domain.operations.*
+import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
 import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.CropHelper
 import kotlinx.coroutines.Dispatchers
@@ -274,6 +275,14 @@ fun ScanToPdfScreen(
                     ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                PdfToolHeroCard(
+                    kicker = "CAPTURE / ON DEVICE",
+                    title = "Scan it clean.\nKeep it yours.",
+                    description = "Turn camera pages into one crisp, share-ready PDF.",
+                    leadingIcon = Icons.Default.CameraAlt,
+                    secondaryIcon = Icons.Default.PictureAsPdf
+                )
+
                 // Image Source Selection
                 Card(
                     modifier = Modifier.fillMaxWidth(),

@@ -45,6 +45,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.domain.operations.*
+import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
 import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
@@ -392,6 +393,14 @@ fun SignPdfScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PdfToolHeroCard(
+                kicker = "SECURITY / SIGN",
+                title = "Sign once.\nSend with confidence.",
+                description = "Draw your signature and place it exactly where it belongs.",
+                leadingIcon = Icons.Default.Draw,
+                secondaryIcon = Icons.Default.CheckCircle
+            )
+
             // Source PDF Selection
             Card(
                 modifier = Modifier.fillMaxWidth(),

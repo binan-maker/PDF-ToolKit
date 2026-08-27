@@ -638,24 +638,18 @@ private fun SettingsTopBar(
             }
         },
         title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                SettingsBrandMark(colors = colors, size = 34.dp)
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.ink
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_topbar_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.muted
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink
+                )
+                Text(
+                    text = stringResource(R.string.settings_topbar_subtitle),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.muted
+                )
             }
         },
         windowInsets = WindowInsets(0, 0, 0, 0),
@@ -663,39 +657,6 @@ private fun SettingsTopBar(
             containerColor = colors.canvas
         )
     )
-}
-
-@Composable
-private fun SettingsBrandMark(
-    colors: SettingsColors,
-    size: androidx.compose.ui.unit.Dp
-) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(colors.accent, colors.iconColors[1])
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(size * 0.56f)
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(size * 0.18f)
-                .size(size * 0.11f)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f))
-        )
-    }
 }
 
 @Composable

@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yourname.pdftoolkit.domain.operations.PdfOcrProcessor
+import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
 import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import com.yourname.pdftoolkit.util.FileOpener
 import kotlinx.coroutines.Dispatchers
@@ -248,6 +249,14 @@ fun OcrScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PdfToolHeroCard(
+                kicker = "READ / OFFLINE",
+                title = "Make every word\nsearchable.",
+                description = "Pull text from scanned pages without sending a file anywhere.",
+                leadingIcon = Icons.Default.DocumentScanner,
+                secondaryIcon = Icons.Default.TextFields
+            )
+
             // Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),

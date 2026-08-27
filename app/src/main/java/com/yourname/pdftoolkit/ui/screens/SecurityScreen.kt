@@ -198,6 +198,15 @@ fun SecurityScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            PdfToolHeroCard(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                kicker = "SECURITY / PRIVATE",
+                title = "Put a lock\non your PDF.",
+                description = "Protect your document with a password you control.",
+                leadingIcon = Icons.Default.Lock,
+                secondaryIcon = Icons.Default.Security
+            )
+
             // Content area
             Box(
                 modifier = Modifier

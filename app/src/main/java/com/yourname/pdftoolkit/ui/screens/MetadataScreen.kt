@@ -276,6 +276,15 @@ fun MetadataScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            PdfToolHeroCard(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                kicker = "VIEW / INSPECT",
+                title = "See what your\nPDF is carrying.",
+                description = "Read the details behind the document before you share it.",
+                leadingIcon = Icons.Default.Info,
+                secondaryIcon = Icons.Default.PictureAsPdf
+            )
+
             // Content area
             Box(
                 modifier = Modifier

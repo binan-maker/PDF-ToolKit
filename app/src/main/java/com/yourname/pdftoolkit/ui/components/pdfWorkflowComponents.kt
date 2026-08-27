@@ -29,10 +29,11 @@ fun PdfToolHeroCard(
     description: String,
     leadingIcon: ImageVector,
     secondaryIcon: ImageVector,
-    status: String? = null
+    status: String? = null,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -48,7 +49,7 @@ fun PdfToolHeroCard(
                         )
                     )
                 )
-                .padding(22.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -70,7 +71,7 @@ fun PdfToolHeroCard(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Text(
                         text = kicker,

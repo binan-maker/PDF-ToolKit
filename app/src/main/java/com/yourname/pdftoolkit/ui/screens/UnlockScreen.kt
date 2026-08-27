@@ -215,6 +215,15 @@ fun UnlockScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            PdfToolHeroCard(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                kicker = "SECURITY / ACCESS",
+                title = "Open the\nway back in.",
+                description = "Remove PDF protection when you have the right password.",
+                leadingIcon = Icons.Default.LockOpen,
+                secondaryIcon = Icons.Default.PictureAsPdf
+            )
+
             // Content area
             Box(
                 modifier = Modifier
