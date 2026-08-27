@@ -726,8 +726,6 @@ fun AppNavigation(
         }
 
     } // End Box
-}@Composable fun HtmlToPdfScreen(onNavigateBack: () -> Boolean) {
-TODO("Not yet implemented")
 }
 
 /**
