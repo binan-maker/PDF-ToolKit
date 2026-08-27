@@ -59,7 +59,7 @@ fun ReorderScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val organizer = remember { PdfOrganizer() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var pages by remember { mutableStateOf<List<ReorderablePage>>(emptyList()) }
@@ -72,12 +72,12 @@ fun ReorderScreen(
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
     var selectedPageIndex by remember { mutableStateOf<Int?>(null) }
-    
+
     // Check if order has changed
     val hasOrderChanged = remember(pages) {
         pages.mapIndexed { index, page -> page.originalIndex != index + 1 }.any { it }
     }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -86,15 +86,15 @@ fun ReorderScreen(
             selectedFile = FileManager.getFileInfo(context, uri)
             pages = emptyList()
             selectedPageIndex = null
-            
+
             // Load page thumbnails
             scope.launch {
                 isLoadingThumbnails = true
                 val pageCount = organizer.getPageCount(context, uri)
-                
+
                 // Create placeholder pages first
                 pages = (1..pageCount).map { ReorderablePage(it, null) }
-                
+
                 // Load thumbnails in background
                 withContext(Dispatchers.IO) {
                     try {
@@ -121,21 +121,21 @@ fun ReorderScreen(
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { saveUri ->
             val file = selectedFile ?: return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     val newOrder = pages.map { it.originalIndex }
-                    
+
                     val result = organizer.reorderPages(
                         context = context,
                         inputUri = file.uri,
@@ -143,13 +143,13 @@ fun ReorderScreen(
                         newOrder = newOrder,
                         onProgress = { progress = it }
                     )
-                    
+
                     result.fold(
                         onSuccess = { organizeResult ->
                             resultSuccess = true
                             resultUri = saveUri
                             resultMessage = "Successfully reordered ${organizeResult.resultPageCount} pages."
-                            
+
                             HistoryManager.recordSuccess(
                                 context = context,
                                 operationType = OperationType.REORDER,
@@ -158,14 +158,14 @@ fun ReorderScreen(
                                 outputFileName = "reordered_${file.name}",
                                 details = "Reordered ${organizeResult.resultPageCount} pages"
                             )
-                            
+
                             selectedFile = null
                             pages = emptyList()
                         },
                         onFailure = { error ->
                             resultSuccess = false
                             resultMessage = error.message ?: "Reorder failed"
-                            
+
                             HistoryManager.recordFailure(
                                 context = context,
                                 operationType = OperationType.REORDER,
@@ -178,29 +178,29 @@ fun ReorderScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to reorder with default location
     fun reorderWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
             val file = selectedFile!!
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val baseName = file.name.removeSuffix(".pdf")
                     val fileName = "${baseName}_reordered.pdf"
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val newOrder = pages.map { it.originalIndex }
-                        
+
                         val organizeResult = organizer.reorderPages(
                             context = context,
                             inputUri = file.uri,
@@ -208,9 +208,9 @@ fun ReorderScreen(
                             newOrder = newOrder,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         organizeResult.fold(
                             onSuccess = { oResult ->
                                 Triple(
@@ -231,11 +231,11 @@ fun ReorderScreen(
                     Triple(false, e.message ?: "Reorder failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
-            
+
             if (resultSuccess && result.third != null) {
                 HistoryManager.recordSuccess(
                     context = context,
@@ -255,12 +255,12 @@ fun ReorderScreen(
                     errorMessage = result.second
                 )
             }
-            
+
             isProcessing = false
             showResult = true
         }
     }
-    
+
     // Move page functions
     fun movePageUp(index: Int) {
         if (index > 0) {
@@ -272,7 +272,7 @@ fun ReorderScreen(
             selectedPageIndex = index - 1
         }
     }
-    
+
     fun movePageDown(index: Int) {
         if (index < pages.size - 1) {
             val mutableList = pages.toMutableList()
@@ -283,7 +283,7 @@ fun ReorderScreen(
             selectedPageIndex = index + 1
         }
     }
-    
+
     fun moveToFirst(index: Int) {
         if (index > 0) {
             val mutableList = pages.toMutableList()
@@ -293,7 +293,7 @@ fun ReorderScreen(
             selectedPageIndex = 0
         }
     }
-    
+
     fun moveToLast(index: Int) {
         if (index < pages.size - 1) {
             val mutableList = pages.toMutableList()
@@ -303,12 +303,12 @@ fun ReorderScreen(
             selectedPageIndex = pages.size - 1
         }
     }
-    
+
     fun resetOrder() {
         pages = pages.sortedBy { it.originalIndex }
         selectedPageIndex = null
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -350,21 +350,19 @@ fun ReorderScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
                         // Selected file info
                         FileItemCard(
                             fileName = selectedFile!!.name,
                             fileSize = "${pages.size} pages • ${selectedFile!!.formattedSize}",
-                            onRemove = { 
+                            onRemove = {
                                 selectedFile = null
                                 pages = emptyList()
                                 selectedPageIndex = null
                             }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         // Instructions and reset
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -386,7 +384,7 @@ fun ReorderScreen(
                                     )
                                 }
                             }
-                            
+
                             if (hasOrderChanged) {
                                 TextButton(onClick = { resetOrder() }) {
                                     Icon(
@@ -399,9 +397,9 @@ fun ReorderScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // Page grid with thumbnails
                         PdfThumbnailGrid(
                             uri = selectedFile!!.uri,
@@ -457,7 +455,7 @@ fun ReorderScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -480,7 +478,7 @@ fun ReorderScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -505,9 +503,9 @@ fun ReorderScreen(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = "Save Reordered PDF",
                             onClick = {
@@ -527,14 +525,14 @@ fun ReorderScreen(
             }
         }
     }
-    
+
     // Result dialog
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Reorder Complete" else "Reorder Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

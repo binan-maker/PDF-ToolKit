@@ -363,8 +363,8 @@ fun CompressScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
                         // Selected file info
                         item {

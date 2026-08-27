@@ -47,7 +47,7 @@ fun ExtractScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfSplitter = remember { PdfSplitter() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var pageCount by remember { mutableStateOf(0) }
@@ -59,7 +59,7 @@ fun ExtractScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher - with PDF MIME type filter and validation
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -74,13 +74,13 @@ fun ExtractScreen(
             val fileInfo = FileManager.getFileInfo(context, uri)
             selectedFile = fileInfo
             selectedPages = emptySet()
-            
+
             scope.launch {
                 pageCount = pdfSplitter.getPageCount(context, uri)
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -88,11 +88,11 @@ fun ExtractScreen(
         uri?.let { outputUri ->
             val file = selectedFile ?: return@let
             if (selectedPages.isEmpty()) return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 val outputStream = context.contentResolver.openOutputStream(outputUri)
                 if (outputStream != null) {
                     val result = pdfSplitter.extractPages(
@@ -102,9 +102,9 @@ fun ExtractScreen(
                         outputStream = outputStream,
                         onProgress = { progress = it }
                     )
-                    
+
                     outputStream.close()
-                    
+
                     result.fold(
                         onSuccess = { count ->
                             resultSuccess = true
@@ -120,13 +120,13 @@ fun ExtractScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to extract with default location
     fun extractWithDefaultLocation() {
         scope.launch {
@@ -134,12 +134,12 @@ fun ExtractScreen(
             progress = 0f
             val originalFile = selectedFile!!
             val pagesList = selectedPages.sorted()
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val fileName = FileManager.generateOutputFileName("extracted")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val file = selectedFile!!
                         val extractResult = pdfSplitter.extractPages(
@@ -149,9 +149,9 @@ fun ExtractScreen(
                             outputStream = outputResult.outputStream,
                             onProgress = { progress = it }
                         )
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         extractResult.fold(
                             onSuccess = { count ->
                                 Triple(true, "Successfully extracted $count pages\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
@@ -168,11 +168,11 @@ fun ExtractScreen(
                     Triple(false, e.message ?: "Extraction failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
-            
+
             // Record in history
             if (resultSuccess && result.third != null) {
                 HistoryManager.recordSuccess(
@@ -191,12 +191,12 @@ fun ExtractScreen(
                     errorMessage = result.second
                 )
             }
-            
+
             isProcessing = false
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -229,8 +229,6 @@ fun ExtractScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
                         // Selected file info
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -263,7 +261,7 @@ fun ExtractScreen(
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                     )
                                 }
-                                IconButton(onClick = { 
+                                IconButton(onClick = {
                                     selectedFile = null
                                     selectedPages = emptySet()
                                 }) {
@@ -275,9 +273,9 @@ fun ExtractScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Selection controls
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -290,7 +288,7 @@ fun ExtractScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            
+
                             Row {
                                 TextButton(
                                     onClick = { selectedPages = (1..pageCount).toSet() }
@@ -304,9 +302,9 @@ fun ExtractScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // Page grid
                         PdfThumbnailGrid(
                             uri = selectedFile!!.uri,
@@ -329,7 +327,7 @@ fun ExtractScreen(
                         )
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     androidx.compose.animation.AnimatedVisibility(
@@ -358,7 +356,7 @@ fun ExtractScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -397,14 +395,14 @@ fun ExtractScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Extraction Complete" else "Extraction Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

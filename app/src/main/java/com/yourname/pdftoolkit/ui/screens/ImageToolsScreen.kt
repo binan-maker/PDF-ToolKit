@@ -62,7 +62,7 @@ fun ImageToolsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+
     // Map string to enum
     val startOperation = when (initialOperation.lowercase()) {
         "compress" -> ImageOperation.COMPRESS
@@ -70,7 +70,7 @@ fun ImageToolsScreen(
         "strip_metadata" -> ImageOperation.STRIP_METADATA
         else -> ImageOperation.RESIZE
     }
-    
+
     // State
     var selectedImages by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var selectedOperation by rememberSaveable { mutableStateOf(startOperation) }
@@ -79,17 +79,17 @@ fun ImageToolsScreen(
     var showResult by remember { mutableStateOf(false) }
     var resultSuccess by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf("") }
-    
+
     // Resize settings
     var selectedPreset by remember { mutableStateOf(ResolutionPreset.HD) }
     var customWidth by remember { mutableStateOf("1280") }
     var customHeight by remember { mutableStateOf("720") }
     var useCustomSize by remember { mutableStateOf(false) }
     var maintainAspectRatio by remember { mutableStateOf(true) }
-    
+
     // Compress settings
     var compressionQuality by remember { mutableStateOf(75f) }
-    
+
     // Convert settings
     var targetFormat by remember { mutableStateOf(
         when (SettingsPreferences.getDefaultImageFormat(context)) {
@@ -97,7 +97,7 @@ fun ImageToolsScreen(
             DefaultImageFormat.JPEG -> OutputFormat.JPEG
         }
     ) }
-    
+
     // Image picker launcher
     val pickImagesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -106,7 +106,7 @@ fun ImageToolsScreen(
             selectedImages = uris
         }
     }
-    
+
     // Open gallery function
     fun openGallery() {
         try {
@@ -119,74 +119,74 @@ fun ImageToolsScreen(
             // Ignore
         }
     }
-    
+
     // Save processed image to gallery
-    suspend fun saveToGallery(inputFile: File, baseName: String, format: OutputFormat): Uri? = 
+    suspend fun saveToGallery(inputFile: File, baseName: String, format: OutputFormat): Uri? =
         withContext(Dispatchers.IO) {
             try {
                 val mimeType = format.mimeType
                 val extension = format.extension
-                
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val contentValues = ContentValues().apply {
                         put(MediaStore.Images.Media.DISPLAY_NAME, "${baseName}.${extension}")
                         put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Paperly")
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/PDF Toolkit")
                         put(MediaStore.Images.Media.IS_PENDING, 1)
                     }
-                    
+
                     val uri = context.contentResolver.insert(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                         contentValues
                     ) ?: return@withContext null
-                    
+
                     context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                         FileInputStream(inputFile).use { inputStream ->
                             inputStream.copyTo(outputStream)
                         }
                     }
-                    
+
                     contentValues.clear()
                     contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                     context.contentResolver.update(uri, contentValues, null, null)
-                    
+
                     uri
                 } else {
                     @Suppress("DEPRECATION")
                     val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                    val appDir = File(picturesDir, "Paperly")
+                    val appDir = File(picturesDir, "PDF Toolkit")
                     if (!appDir.exists()) appDir.mkdirs()
-                    
+
                     val destFile = File(appDir, "${baseName}.${extension}")
                     inputFile.copyTo(destFile, overwrite = true)
-                    
+
                     val values = ContentValues().apply {
                         put(MediaStore.Images.Media.DATA, destFile.absolutePath)
                         put(MediaStore.Images.Media.MIME_TYPE, mimeType)
                     }
                     context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-                    
+
                     Uri.fromFile(destFile)
                 }
             } catch (e: Exception) {
                 null
             }
         }
-    
+
     // Process images
     fun processImages() {
         if (selectedImages.isEmpty()) return
-        
+
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             var successCount = 0
             var totalSaved = 0L
             var totalOriginal = 0L
-            
+
             val format = targetFormat
-            
+
             selectedImages.forEachIndexed { index, uri ->
                 val result = when (selectedOperation) {
                     ImageOperation.RESIZE -> {
@@ -235,56 +235,56 @@ fun ImageToolsScreen(
                         )
                     }
                 }
-                
+
                 if (result.success && result.outputFile != null) {
                     val baseName = FileManager.getFileInfo(context, uri)?.name
                         ?.substringBeforeLast(".") ?: "image_${index + 1}"
-                    
+
                     val savedUri = saveToGallery(
                         inputFile = result.outputFile,
                         baseName = "${baseName}_${selectedOperation.name.lowercase()}",
                         format = format
                     )
-                    
+
                     if (savedUri != null) {
                         successCount++
                         totalOriginal += result.originalSize
                         totalSaved += result.savedBytes
                     }
-                    
+
                     // Clean up temp file
                     result.outputFile.delete()
                 }
-                
+
                 progress = (index + 1).toFloat() / selectedImages.size
             }
-            
+
             // Clean up image processing cache
             CacheManager.clearImageProcessingCache(context)
-            
+
             resultSuccess = successCount > 0
             resultMessage = if (successCount > 0) {
                 val savedKB = totalSaved / 1024
                 when (selectedOperation) {
-                    ImageOperation.COMPRESS -> 
+                    ImageOperation.COMPRESS ->
                         "Compressed $successCount images.\nSaved ${savedKB}KB (~${(totalSaved * 100 / totalOriginal.coerceAtLeast(1))}% reduction)"
-                    ImageOperation.RESIZE -> 
+                    ImageOperation.RESIZE ->
                         "Resized $successCount images to ${if (useCustomSize) "${customWidth}x${customHeight}" else selectedPreset.displayName}"
-                    ImageOperation.CONVERT -> 
+                    ImageOperation.CONVERT ->
                         "Converted $successCount images to ${targetFormat.extension.uppercase()}"
-                    ImageOperation.STRIP_METADATA -> 
+                    ImageOperation.STRIP_METADATA ->
                         "Removed metadata from $successCount images"
                 }
             } else {
                 "No images processed successfully"
             }
-            
+
             isProcessing = false
             showResult = true
             selectedImages = emptyList()
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -311,7 +311,7 @@ fun ImageToolsScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
                         // Operation selection - show first before images
                         item {
@@ -322,7 +322,7 @@ fun ImageToolsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -345,7 +345,7 @@ fun ImageToolsScreen(
                                 }
                             }
                         }
-                        
+
                         // Operation description
                         item {
                             Card(
@@ -386,7 +386,7 @@ fun ImageToolsScreen(
                                 }
                             }
                         }
-                        
+
                         // Step 2 header
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
@@ -397,7 +397,7 @@ fun ImageToolsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         // Empty state hint
                         item {
                             Card(
@@ -440,7 +440,7 @@ fun ImageToolsScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
                         // Selected images count
                         item {
@@ -479,7 +479,7 @@ fun ImageToolsScreen(
                                 }
                             }
                         }
-                        
+
                         // Operation selection
                         item {
                             Text(
@@ -489,7 +489,7 @@ fun ImageToolsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         item {
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -512,7 +512,7 @@ fun ImageToolsScreen(
                                 }
                             }
                         }
-                        
+
                         // Operation-specific settings
                         item {
                             Card(
@@ -532,7 +532,7 @@ fun ImageToolsScreen(
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
-                                    
+
                                     when (selectedOperation) {
                                         ImageOperation.RESIZE -> {
                                             // Preset or Custom toggle
@@ -546,7 +546,7 @@ fun ImageToolsScreen(
                                                     onCheckedChange = { useCustomSize = it }
                                                 )
                                             }
-                                            
+
                                             if (useCustomSize) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
@@ -567,7 +567,7 @@ fun ImageToolsScreen(
                                                         singleLine = true
                                                     )
                                                 }
-                                                
+
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     verticalAlignment = Alignment.CenterVertically
@@ -587,18 +587,18 @@ fun ImageToolsScreen(
                                                         FilterChip(
                                                             selected = selectedPreset == preset,
                                                             onClick = { selectedPreset = preset },
-                                                            label = { 
+                                                            label = {
                                                                 Text(
                                                                     preset.displayName.substringBefore(" ("),
                                                                     maxLines = 1
-                                                                ) 
+                                                                )
                                                             }
                                                         )
                                                     }
                                                 }
                                             }
                                         }
-                                        
+
                                         ImageOperation.COMPRESS -> {
                                             // Quality slider
                                             Row(
@@ -612,14 +612,14 @@ fun ImageToolsScreen(
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
                                             }
-                                            
+
                                             Slider(
                                                 value = compressionQuality,
                                                 onValueChange = { compressionQuality = it },
                                                 valueRange = 10f..100f,
                                                 steps = 8
                                             )
-                                            
+
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -635,14 +635,14 @@ fun ImageToolsScreen(
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
-                                            
+
                                             Text(
                                                 "Uses WebP format for optimal compression",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                         }
-                                        
+
                                         ImageOperation.CONVERT -> {
                                             Text(stringResource(R.string.imgtools_target_format))
                                             LazyRow(
@@ -656,7 +656,7 @@ fun ImageToolsScreen(
                                                     )
                                                 }
                                             }
-                                            
+
                                             // Quality slider for lossy formats
                                             if (targetFormat != OutputFormat.PNG) {
                                                 Spacer(modifier = Modifier.height(8.dp))
@@ -671,7 +671,7 @@ fun ImageToolsScreen(
                                                         color = MaterialTheme.colorScheme.primary
                                                     )
                                                 }
-                                                
+
                                                 Slider(
                                                     value = compressionQuality,
                                                     onValueChange = { compressionQuality = it },
@@ -680,7 +680,7 @@ fun ImageToolsScreen(
                                                 )
                                             }
                                         }
-                                        
+
                                         ImageOperation.STRIP_METADATA -> {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -707,7 +707,7 @@ fun ImageToolsScreen(
                                             }
                                         }
                                     }
-                                    
+
                                     // Output format (visible for all operations)
                                     if (selectedOperation != ImageOperation.CONVERT) {
                                         Spacer(modifier = Modifier.height(8.dp))
@@ -730,7 +730,7 @@ fun ImageToolsScreen(
                                 }
                             }
                         }
-                        
+
                         // Info card
                         item {
                             Card(
@@ -752,7 +752,7 @@ fun ImageToolsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        text = "Processed images will be saved to Pictures/Paperly folder.",
+                                        text = "Processed images will be saved to Pictures/PDF Toolkit folder.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )
@@ -761,7 +761,7 @@ fun ImageToolsScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 if (isProcessing) {
                     Card(
@@ -784,7 +784,7 @@ fun ImageToolsScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -820,7 +820,7 @@ fun ImageToolsScreen(
             }
         }
     }
-    
+
     // Result dialog
     if (showResult) {
         AlertDialog(

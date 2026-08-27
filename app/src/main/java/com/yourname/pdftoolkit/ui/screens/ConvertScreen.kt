@@ -285,7 +285,7 @@ fun ConvertScreen(
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp)
+                        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
                         // Image list header
                         item(span = { GridItemSpan(3) }) {

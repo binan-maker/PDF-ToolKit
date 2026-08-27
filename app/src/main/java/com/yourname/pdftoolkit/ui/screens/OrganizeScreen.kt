@@ -43,7 +43,7 @@ fun OrganizeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val organizer = remember { PdfOrganizer() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var pageCount by remember { mutableStateOf(0) }
@@ -56,7 +56,7 @@ fun OrganizeScreen(
     var resultMessage by remember { mutableStateOf("") }
     var useCustomLocation by remember { mutableStateOf(false) }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -64,24 +64,24 @@ fun OrganizeScreen(
         uri?.let {
             selectedFile = FileManager.getFileInfo(context, uri)
             selectedPages = setOf()
-            
+
             scope.launch {
                 pageCount = organizer.getPageCount(context, uri)
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         uri?.let { saveUri ->
             val file = selectedFile ?: return@let
-            
+
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 context.contentResolver.openOutputStream(saveUri)?.use { outputStream ->
                     val result = if (isRemoveMode) {
                         organizer.removePages(
@@ -100,7 +100,7 @@ fun OrganizeScreen(
                             onProgress = { progress = it }
                         )
                     }
-                    
+
                     result.fold(
                         onSuccess = { organizeResult ->
                             resultSuccess = true
@@ -122,19 +122,19 @@ fun OrganizeScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to organize with default location
     fun organizeWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val file = selectedFile!!
@@ -142,7 +142,7 @@ fun OrganizeScreen(
                     val suffix = if (isRemoveMode) "_edited" else "_extracted"
                     val fileName = "${baseName}${suffix}.pdf"
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val organizeResult = if (isRemoveMode) {
                             organizer.removePages(
@@ -161,9 +161,9 @@ fun OrganizeScreen(
                                 onProgress = { progress = it }
                             )
                         }
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         organizeResult.fold(
                             onSuccess = { oResult ->
                                 val message = if (isRemoveMode) {
@@ -185,7 +185,7 @@ fun OrganizeScreen(
                     Triple(false, e.message ?: "Operation failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
@@ -197,7 +197,7 @@ fun OrganizeScreen(
             showResult = true
         }
     }
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -230,21 +230,19 @@ fun OrganizeScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
                         // Selected file info
                         FileItemCard(
                             fileName = selectedFile!!.name,
                             fileSize = "${pageCount} pages • ${selectedFile!!.formattedSize}",
-                            onRemove = { 
+                            onRemove = {
                                 selectedFile = null
                                 selectedPages = setOf()
                                 pageCount = 0
                             }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Mode toggle
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -252,7 +250,7 @@ fun OrganizeScreen(
                         ) {
                             FilterChip(
                                 selected = isRemoveMode,
-                                onClick = { 
+                                onClick = {
                                     isRemoveMode = true
                                     selectedPages = setOf()
                                 },
@@ -264,7 +262,7 @@ fun OrganizeScreen(
                             )
                             FilterChip(
                                 selected = !isRemoveMode,
-                                onClick = { 
+                                onClick = {
                                     isRemoveMode = false
                                     selectedPages = setOf()
                                 },
@@ -275,9 +273,9 @@ fun OrganizeScreen(
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // Selection info
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -294,29 +292,29 @@ fun OrganizeScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            
+
                             Row {
-                                TextButton(onClick = { 
+                                TextButton(onClick = {
                                     selectedPages = (1..pageCount).toSet()
                                 }) {
                                     Text(stringResource(R.string.action_select_all))
                                 }
-                                TextButton(onClick = { 
+                                TextButton(onClick = {
                                     selectedPages = setOf()
                                 }) {
                                     Text(stringResource(R.string.action_select_none))
                                 }
                             }
                         }
-                        
+
                         Text(
                             text = "${selectedPages.size} of $pageCount selected",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // Page grid
                         PdfThumbnailGrid(
                             uri = selectedFile!!.uri,
@@ -334,7 +332,7 @@ fun OrganizeScreen(
                         )
                     }
                 }
-                
+
                 // Progress overlay
                 // Progress overlay
                 if (isProcessing) {
@@ -358,7 +356,7 @@ fun OrganizeScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -378,18 +376,18 @@ fun OrganizeScreen(
                             icon = Icons.Default.FolderOpen
                         )
                     } else {
-                        val canProcess = selectedPages.isNotEmpty() && 
-                            (isRemoveMode && selectedPages.size < pageCount) || 
-                            (!isRemoveMode && selectedPages.isNotEmpty())
-                        
+                        val canProcess = selectedPages.isNotEmpty() &&
+                                (isRemoveMode && selectedPages.size < pageCount) ||
+                                (!isRemoveMode && selectedPages.isNotEmpty())
+
                         // Save location option
                         SaveLocationSelector(
                             useCustomLocation = useCustomLocation,
                             onUseCustomLocationChange = { useCustomLocation = it }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         ActionButton(
                             text = if (isRemoveMode) {
                                 "Remove ${selectedPages.size} Pages"
@@ -414,14 +412,14 @@ fun OrganizeScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Success" else "Error",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },

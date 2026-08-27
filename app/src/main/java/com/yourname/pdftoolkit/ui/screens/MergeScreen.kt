@@ -167,9 +167,14 @@ fun MergeScreen(
 
     Scaffold(
         topBar = {
-            ToolTopBar(
-                title = stringResource(R.string.merge_title),
-                onNavigateBack = onNavigateBack
+            TopAppBar(
+                title = { Text("Merge PDF") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null)
+                    }
+                },
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         }
     ) { paddingValues ->
@@ -199,7 +204,7 @@ fun MergeScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp)
+                        contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
                         item {
                             Text(

@@ -51,7 +51,7 @@ fun RotateScreen(
     val scope = rememberCoroutineScope()
     val pdfRotator = remember { PdfRotator() }
     val pdfSplitter = remember { PdfSplitter() }
-    
+
     // State
     var selectedFile by remember { mutableStateOf<PdfFileInfo?>(null) }
     var pageCount by remember { mutableStateOf(0) }
@@ -65,7 +65,7 @@ fun RotateScreen(
     var resultMessage by remember { mutableStateOf("") }
     var resultUri by remember { mutableStateOf<Uri?>(null) }
     var useCustomLocation by remember { mutableStateOf(false) }
-    
+
     // File picker launcher
     val pickPdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -74,13 +74,13 @@ fun RotateScreen(
             val fileInfo = FileManager.getFileInfo(context, uri)
             selectedFile = fileInfo
             selectedPages = emptySet()
-            
+
             scope.launch {
                 pageCount = pdfSplitter.getPageCount(context, uri)
             }
         }
     }
-    
+
     // Save file launcher (for custom location)
     val savePdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -90,7 +90,7 @@ fun RotateScreen(
             scope.launch {
                 isProcessing = true
                 progress = 0f
-                
+
                 val outputStream = context.contentResolver.openOutputStream(outputUri)
                 if (outputStream != null) {
                     val result = if (rotateAllPages) {
@@ -111,9 +111,9 @@ fun RotateScreen(
                             onProgress = { progress = it }
                         )
                     }
-                    
+
                     outputStream.close()
-                    
+
                     result.fold(
                         onSuccess = { count ->
                             resultSuccess = true
@@ -129,25 +129,25 @@ fun RotateScreen(
                     resultSuccess = false
                     resultMessage = "Cannot create output file"
                 }
-                
+
                 isProcessing = false
                 showResult = true
             }
         }
     }
-    
+
     // Function to rotate with default location
     fun rotateWithDefaultLocation() {
         scope.launch {
             isProcessing = true
             progress = 0f
             val originalFile = selectedFile!!
-            
+
             val result = withContext(Dispatchers.IO) {
                 try {
                     val fileName = FileManager.generateOutputFileName("rotated")
                     val outputResult = OutputFolderManager.createOutputStream(context, fileName)
-                    
+
                     if (outputResult != null) {
                         val file = selectedFile!!
                         val rotateResult = if (rotateAllPages) {
@@ -168,9 +168,9 @@ fun RotateScreen(
                                 onProgress = { progress = it }
                             )
                         }
-                        
+
                         outputResult.outputStream.close()
-                        
+
                         rotateResult.fold(
                             onSuccess = { count ->
                                 Triple(true, "Successfully rotated $count pages by ${rotationAngle.degrees}°\n\nSaved to: ${OutputFolderManager.getOutputFolderPath(context)}/${outputResult.outputFile.fileName}", outputResult.outputFile.contentUri)
@@ -187,11 +187,11 @@ fun RotateScreen(
                     Triple(false, e.message ?: "Rotation failed", null)
                 }
             }
-            
+
             resultSuccess = result.first
             resultMessage = result.second
             resultUri = result.third
-            
+
             // Record in history
             if (resultSuccess && result.third != null) {
                 HistoryManager.recordSuccess(
@@ -210,13 +210,13 @@ fun RotateScreen(
                     errorMessage = result.second
                 )
             }
-            
+
             isProcessing = false
             showResult = true
         }
     }
 
-    
+
     Scaffold(
         topBar = {
             ToolTopBar(
@@ -249,8 +249,6 @@ fun RotateScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
                         // Selected file info
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -283,7 +281,7 @@ fun RotateScreen(
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                     )
                                 }
-                                IconButton(onClick = { 
+                                IconButton(onClick = {
                                     selectedFile = null
                                     selectedPages = emptySet()
                                 }) {
@@ -295,9 +293,9 @@ fun RotateScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Rotation angle selection
                         Text(
                             text = "Rotation Angle",
@@ -305,9 +303,9 @@ fun RotateScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -321,9 +319,9 @@ fun RotateScreen(
                                 )
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Rotate mode selection
                         Text(
                             text = "Pages to Rotate",
@@ -331,9 +329,9 @@ fun RotateScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -347,7 +345,7 @@ fun RotateScreen(
                                 } else null,
                                 modifier = Modifier.weight(1f)
                             )
-                            
+
                             FilterChip(
                                 selected = !rotateAllPages,
                                 onClick = { rotateAllPages = false },
@@ -358,9 +356,9 @@ fun RotateScreen(
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Page selection (if not rotating all)
                         if (!rotateAllPages) {
                             Row(
@@ -373,14 +371,14 @@ fun RotateScreen(
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                
+
                                 TextButton(onClick = { selectedPages = emptySet() }) {
                                     Text(stringResource(R.string.action_clear))
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             PdfThumbnailGrid(
                                 uri = selectedFile!!.uri,
                                 pageCount = pageCount,
@@ -439,7 +437,7 @@ fun RotateScreen(
                         }
                     }
                 }
-                
+
                 // Progress overlay
                 // Progress overlay
                 if (isProcessing) {
@@ -469,7 +467,7 @@ fun RotateScreen(
                     }
                 }
             }
-            
+
             // Bottom action area
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -509,14 +507,14 @@ fun RotateScreen(
             }
         }
     }
-    
+
     // Result dialog with View option
     if (showResult) {
         ResultDialog(
             isSuccess = resultSuccess,
             title = if (resultSuccess) "Rotation Complete" else "Rotation Failed",
             message = resultMessage,
-            onDismiss = { 
+            onDismiss = {
                 showResult = false
                 resultUri = null
             },
@@ -566,9 +564,9 @@ private fun RotationAngleChip(
                     MaterialTheme.colorScheme.onSurfaceVariant
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = "${angle.degrees}°",
                 style = MaterialTheme.typography.labelMedium,
