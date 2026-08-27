@@ -5,8 +5,11 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -367,8 +370,8 @@ fun AppNavigation(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(RoundedCornerShape(13.dp))
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(11.dp))
                                         .background(
                                             Brush.linearGradient(
                                                 colors = listOf(
@@ -382,14 +385,14 @@ fun AppNavigation(
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        modifier = Modifier.size(21.dp),
+                                        modifier = Modifier.size(18.dp),
                                         tint = Color.White
                                     )
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .padding(7.dp)
-                                            .size(4.dp)
+                                            .padding(6.dp)
+                                            .size(3.dp)
                                             .clip(RoundedCornerShape(50))
                                             .background(Color.White.copy(alpha = 0.9f))
                                     )
@@ -410,8 +413,10 @@ fun AppNavigation(
                                 onClick = {
                                     safeNavigate(navController, Screen.Settings.route)
                                 },
-                                modifier = Modifier.size(42.dp),
-                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(40.dp),
+                                shape = RoundedCornerShape(13.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             ) {
@@ -468,7 +473,35 @@ fun AppNavigation(
                 startDestination = actualStartDestination,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(paddingValues),
+                enterTransition = {
+                    fadeIn(animationSpec = tween(180)) +
+                            slideInHorizontally(
+                                initialOffsetX = { fullWidth -> fullWidth / 10 },
+                                animationSpec = tween(180)
+                            )
+                },
+                exitTransition = {
+                    fadeOut(animationSpec = tween(120)) +
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -fullWidth / 14 },
+                                animationSpec = tween(120)
+                            )
+                },
+                popEnterTransition = {
+                    fadeIn(animationSpec = tween(180)) +
+                            slideInHorizontally(
+                                initialOffsetX = { fullWidth -> -fullWidth / 10 },
+                                animationSpec = tween(180)
+                            )
+                },
+                popExitTransition = {
+                    fadeOut(animationSpec = tween(120)) +
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> fullWidth / 14 },
+                                animationSpec = tween(120)
+                            )
+                }
             ) {
                 // Main Tabs
                 composable(Screen.Tools.route) {

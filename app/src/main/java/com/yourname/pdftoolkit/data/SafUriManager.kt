@@ -9,6 +9,8 @@ import androidx.core.content.edit
 import com.yourname.pdftoolkit.data.local.AppDatabase
 import com.yourname.pdftoolkit.data.local.RecentFileEntity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -35,7 +37,7 @@ data class PersistedFile(
             null
         }
     }
-    
+
     fun toJson(): JSONObject {
         return JSONObject().apply {
             put("uriString", uriString)
@@ -45,7 +47,7 @@ data class PersistedFile(
             put("lastAccessed", lastAccessed)
         }
     }
-    
+
     companion object {
         fun fromJson(json: JSONObject): PersistedFile? {
             return try {
@@ -65,28 +67,28 @@ data class PersistedFile(
 
 /**
  * Manages SAF (Storage Access Framework) URIs for persistent file access.
- * 
+ *
  * This class handles:
  * - Taking and releasing persistable URI permissions
  * - Storing and retrieving persisted file metadata
  * - Validating URI access
  * - Managing recent files list with proper SAF compliance
- * 
+ *
  * All files are stored as URI strings, NOT file paths.
  * This ensures proper scoped storage compliance on Android 10+.
  */
 object SafUriManager {
-    
+
     private const val TAG = "SafUriManager"
     private const val PREFS_NAME = "saf_uri_manager"
     private const val KEY_PERSISTED_FILES = "persisted_files"
     private const val KEY_MIGRATED_TO_ROOM = "migrated_to_room"
     private const val MAX_RECENT_FILES = 50
-    
+
     /**
      * Take persistable URI permission for the given URI.
      * This must be called immediately after receiving a URI from ACTION_OPEN_DOCUMENT.
-     * 
+     *
      * @param context Application context
      * @param uri The content URI to persist
      * @param intentFlags The flags from the intent data (data.flags)
@@ -100,13 +102,13 @@ object SafUriManager {
         return try {
             // Only take the permissions that were actually granted
             val takeFlags = intentFlags and (
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-            
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+
             // If no flags, at least try to take read permission
             val flagsToUse = if (takeFlags != 0) takeFlags else Intent.FLAG_GRANT_READ_URI_PERMISSION
-            
+
             context.contentResolver.takePersistableUriPermission(uri, flagsToUse)
             Log.d(TAG, "Successfully took persistable permission for: $uri")
             true
@@ -118,18 +120,18 @@ object SafUriManager {
             false
         }
     }
-    
+
     /**
      * Release persistable URI permission for the given URI.
      * Call this when the file is removed from the recent list.
-     * 
+     *
      * @param context Application context
      * @param uri The content URI to release
      */
     fun releasePersistablePermission(context: Context, uri: Uri) {
         try {
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                       Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             context.contentResolver.releasePersistableUriPermission(uri, flags)
             Log.d(TAG, "Released persistable permission for: $uri")
         } catch (e: SecurityException) {
@@ -138,10 +140,10 @@ object SafUriManager {
             Log.e(TAG, "Error releasing permission: ${e.message}")
         }
     }
-    
+
     /**
      * Check if we have valid access to the given URI.
-     * 
+     *
      * @param context Application context
      * @param uri The content URI to check
      * @return true if we can read the URI, false otherwise
@@ -161,19 +163,19 @@ object SafUriManager {
             false
         }
     }
-    
+
     /**
      * Get the list of URIs for which we have persistable permissions.
-     * 
+     *
      * @param context Application context
      * @return List of persisted URI strings
      */
     fun getPersistedUriPermissions(context: Context): List<String> {
-        return context.contentResolver.persistedUriPermissions.map { 
-            it.uri.toString() 
+        return context.contentResolver.persistedUriPermissions.map {
+            it.uri.toString()
         }
     }
-    
+
     private fun getDao(context: Context) = AppDatabase.getDatabase(context).recentFilesDao()
 
     private suspend fun migrateIfNeeded(context: Context) {
@@ -207,7 +209,7 @@ object SafUriManager {
 
     /**
      * Add a file to the recent files list with proper SAF permission handling.
-     * 
+     *
      * @param context Application context
      * @param uri The content URI of the file
      * @param intentFlags Optional flags from the intent (for taking permission)
@@ -224,14 +226,14 @@ object SafUriManager {
 
             // Take persistable permission first
             takePersistablePermission(context, uri, intentFlags)
-            
+
             // Get file metadata
             val metadata = getFileMetadata(context, uri)
             val queriedName = metadata?.first ?: uri.lastPathSegment ?: "document.pdf"
             val name = if (!customName.isNullOrBlank()) customName else queriedName
             val size = metadata?.second ?: 0L
             val mimeType = metadata?.third ?: "application/pdf"
-            
+
             val persistedFile = PersistedFile(
                 uriString = uri.toString(),
                 name = name,
@@ -239,41 +241,41 @@ object SafUriManager {
                 size = size,
                 lastAccessed = System.currentTimeMillis()
             )
-            
+
             // Save to storage
             val dao = getDao(context)
             dao.insert(RecentFileEntity.fromPersistedFile(persistedFile))
             dao.prune(MAX_RECENT_FILES)
-            
+
             persistedFile
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add recent file: ${e.message}")
             null
         }
     }
-    
+
     /**
      * Get file metadata from a content URI.
-     * 
+     *
      * @return Triple of (name, size, mimeType) or null if failed
      */
     private fun getFileMetadata(context: Context, uri: Uri): Triple<String, Long, String>? {
         return try {
             val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
-            
+
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                    
+
                     val name = if (nameIndex >= 0) {
                         cursor.getString(nameIndex) ?: "Unknown"
                     } else {
                         uri.lastPathSegment ?: "Unknown"
                     }
-                    
+
                     var size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L
-                    
+
                     // Fallback: AssetFileDescriptor.length is more reliable
                     // than OpenableColumns.SIZE for many content providers
                     if (size <= 0) {
@@ -285,7 +287,7 @@ object SafUriManager {
                             0L
                         }
                     }
-                    
+
                     Triple(name, size, mimeType)
                 } else null
             }
@@ -294,39 +296,41 @@ object SafUriManager {
             null
         }
     }
-    
+
     /**
      * Load all persisted files from storage and validate their accessibility.
      * Removes entries that are no longer accessible.
-     * 
+     *
      * @param context Application context
      * @return List of PersistedFile entries that are currently accessible
      */
     suspend fun loadRecentFiles(context: Context): List<PersistedFile> = withContext(Dispatchers.IO) {
         migrateIfNeeded(context)
-        
+
         val dao = getDao(context)
         val entities = dao.getAll()
-        
-        val accessibleFiles = mutableListOf<PersistedFile>()
-        
-        for (entity in entities) {
-            val persistedFile = entity.toPersistedFile()
-            val uri = persistedFile.toUri()
 
-            if (uri != null && canAccessUri(context, uri)) {
-                accessibleFiles.add(persistedFile)
-            } else {
-                // Release permission for inaccessible URIs
-                uri?.let { releasePersistablePermission(context, it) }
-                dao.deleteByUri(entity.uriString)
-                Log.d(TAG, "Removed inaccessible file from recent: ${persistedFile.name}")
+        // URI providers can be slow, especially when the list contains many files.
+        // Validate a small batch concurrently so opening Files does not feel stuck
+        // while preserving the existing cleanup of stale entries.
+        val validationDispatcher = Dispatchers.IO.limitedParallelism(4)
+        entities.map { entity ->
+            async(validationDispatcher) {
+                val persistedFile = entity.toPersistedFile()
+                val uri = persistedFile.toUri()
+
+                if (uri != null && canAccessUri(context, uri)) {
+                    persistedFile
+                } else {
+                    uri?.let { releasePersistablePermission(context, it) }
+                    dao.deleteByUri(entity.uriString)
+                    Log.d(TAG, "Removed inaccessible file from recent: ${persistedFile.name}")
+                    null
+                }
             }
-        }
-        
-        accessibleFiles
+        }.awaitAll().filterNotNull()
     }
-    
+
     /**
      * Remove a specific file from the recent list.
      * 
@@ -337,7 +341,7 @@ object SafUriManager {
         migrateIfNeeded(context)
         val dao = getDao(context)
         dao.deleteByUri(uriString)
-        
+
         try {
             val uri = Uri.parse(uriString)
             releasePersistablePermission(context, uri)
@@ -345,7 +349,7 @@ object SafUriManager {
             Log.w(TAG, "Failed to release permission for removed file: ${e.message}")
         }
     }
-    
+
     /**
      * Clear all persisted files and release their permissions.
      * 
@@ -354,7 +358,7 @@ object SafUriManager {
     suspend fun clearAllRecentFiles(context: Context) = withContext(Dispatchers.IO) {
         migrateIfNeeded(context)
         val dao = getDao(context)
-        
+
         // Release all permissions first
         val entities = dao.getAll()
         entities.forEach { entity ->
@@ -365,10 +369,10 @@ object SafUriManager {
                 Log.w(TAG, "Failed to release permission: ${e.message}")
             }
         }
-        
+
         dao.clearAll()
     }
-    
+
     /**
      * Update the last accessed time for a file.
      * Call this when a file is opened from the recent list.

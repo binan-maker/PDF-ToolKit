@@ -374,40 +374,6 @@ fun SettingsScreen(
                 )
             }
 
-            // App Info Footer
-            item {
-                Spacer(modifier = Modifier.height(32.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    SettingsBrandMark(colors = settingsColors, size = 64.dp)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.settings_app_name),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_made_with_love),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = settingsColors.muted
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.settings_copyright),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = settingsColors.muted
-                    )
-                }
-            }
-
-            // Bottom spacing for navigation
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
-            }
         }
     }
 

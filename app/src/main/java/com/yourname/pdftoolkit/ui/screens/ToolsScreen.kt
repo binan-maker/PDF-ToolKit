@@ -6,8 +6,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -22,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -165,7 +162,7 @@ fun ToolsScreen(
         }
     }
 
-    val allTools = getAllTools()
+    val allTools = remember { getAllTools() }
     val isDarkTheme = isSystemInDarkTheme()
     val homeColors = remember(isDarkTheme) { HomeColors.forTheme(isDarkTheme) }
     var selectedSection by remember { mutableStateOf<ToolSection?>(null) }
@@ -533,23 +530,9 @@ private fun ToolCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-
-    val scale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.9f,
-        animationSpec = tween(durationMillis = 200),
-        label = "tool_card_scale"
-    )
-
     Card(
         onClick = onClick,
-        modifier = modifier
-            .scale(scale)
-            .height(148.dp),
+        modifier = modifier.height(148.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = colors.card
@@ -626,7 +609,6 @@ private fun ToolCard(
  * Get all tools organized by section.
  * Total: 25+ tools
  */
-@Composable
 fun getAllTools(): List<ToolItem> = listOf(
     // SECTION 1: QUICK ACTIONS (Top, Always Visible)
     ToolItem(
