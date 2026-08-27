@@ -1,0 +1,1 @@
+F-Droid flavor added with Tesseract OCR support and open source dependencies only.

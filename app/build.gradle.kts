@@ -1,0 +1,314 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
+}
+
+android {
+    namespace = "com.yourname.pdftoolkit"
+    compileSdk = 36
+    ndkVersion = "28.0.12433510"
+
+    defaultConfig {
+        applicationId = "com.yourname.pdftoolkit"
+        minSdk = 26
+        targetSdk = 36
+        // Version code and name are read from gradle.properties for F-Droid compatibility
+        versionCode = project.property("APP_VERSION_CODE").toString().toInt()
+        versionName = project.property("APP_VERSION_NAME").toString()
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+        
+        // Play Store requirements
+        multiDexEnabled = true
+    }
+
+    signingConfigs {
+        create("release") {
+            val isCi = System.getenv("CI") == "true"
+            if (isCi) {
+                println("Configuring signing for CI...")
+                val keystorePath = System.getenv("ANDROID_KEYSTORE_FILE") ?: "keystore.jks"
+                val keystoreFile = file(keystorePath)
+                
+                if (keystoreFile.exists()) {
+                    println("Keystore file found at: ${keystoreFile.absolutePath}")
+                    storeFile = keystoreFile
+                } else {
+                     println("ERROR: Keystore file NOT found at: ${keystoreFile.absolutePath}")
+                     // Don't throw here, let gradle fail naturally or subsequent checks fail
+                }
+
+                val kPassword = System.getenv("KEYSTORE_PASSWORD")
+                val kAlias = System.getenv("KEY_ALIAS")
+                val kKeyPassword = System.getenv("KEY_PASSWORD")
+
+                println("KEYSTORE_PASSWORD present: ${!kPassword.isNullOrEmpty()}")
+                println("KEY_ALIAS present: ${!kAlias.isNullOrEmpty()}")
+                println("KEY_PASSWORD present: ${!kKeyPassword.isNullOrEmpty()}")
+                // Mask alias for safety in logs though usually public
+                println("KEY_ALIAS value: '${if (kAlias.isNullOrEmpty()) "null/empty" else kAlias}'") 
+                
+                if (!kPassword.isNullOrEmpty() && !kAlias.isNullOrEmpty() && !kKeyPassword.isNullOrEmpty()) {
+                    storePassword = kPassword
+                    keyAlias = kAlias
+                    keyPassword = kKeyPassword
+                } else {
+                    println("ERROR: One or more signing secrets are missing in CI environment.")
+                    // Initialize with empty strings to verify if NPE comes from null values
+                    storePassword = kPassword ?: ""
+                    keyAlias = kAlias ?: ""
+                    keyPassword = kKeyPassword ?: ""
+                }
+            } else {
+                val keystorePropertiesFile = rootProject.file("keystore.properties")
+                if (keystorePropertiesFile.exists()) {
+                    val properties = Properties()
+                    properties.load(FileInputStream(keystorePropertiesFile))
+                    storeFile = rootProject.file(properties["storeFile"] as String)
+                    storePassword = properties["storePassword"] as String
+                    keyAlias = properties["keyAlias"] as String
+                    keyPassword = properties["keyPassword"] as String
+                }
+            }
+        }
+    }
+
+    flavorDimensions += "store"
+    productFlavors {
+        create("playstore") {
+            dimension = "store"
+            // Play Store and Indus App Store flavor
+            // Uses ML Kit for OCR (proprietary but smaller)
+            buildConfigField("boolean", "HAS_OCR", "true")
+            buildConfigField("boolean", "USE_MLKIT_OCR", "true")
+            buildConfigField("boolean", "HAS_NETWORK_URL_TO_PDF", "true")
+        }
+        
+        create("fdroid") {
+            dimension = "store"
+            // F-Droid flavor with only open source dependencies
+            // Uses Tesseract for OCR (open source but larger APK)
+            buildConfigField("boolean", "HAS_OCR", "true")
+            buildConfigField("boolean", "USE_MLKIT_OCR", "false")
+            buildConfigField("boolean", "HAS_NETWORK_URL_TO_PDF", "false")
+        }
+        
+        create("opensource") {
+            dimension = "store"
+            // Open source flavor - no ads, no Firebase, no Play Services
+            // Uses Tesseract for OCR (fully open source)
+            buildConfigField("boolean", "HAS_OCR", "true")
+            buildConfigField("boolean", "USE_MLKIT_OCR", "false")
+            buildConfigField("boolean", "HAS_ADS", "false")
+            buildConfigField("boolean", "HAS_FIREBASE", "false")
+            buildConfigField("boolean", "HAS_PLAY_SERVICES", "false")
+            buildConfigField("boolean", "HAS_NETWORK_URL_TO_PDF", "false")
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            // Enable signing for CI builds or when keystore exists
+            val isCi = System.getenv("CI") == "true"
+            val keystorePath = System.getenv("ANDROID_KEYSTORE_FILE") ?: "keystore.jks"
+            val keystoreFile = file(keystorePath)
+
+            if (isCi && keystoreFile.exists()) {
+                println("CI build detected with keystore - enabling signing")
+                signingConfig = signingConfigs.getByName("release")
+            } else if (keystoreFile.exists() && !isCi) {
+                println("Local build with keystore - enabling signing")
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                println("No keystore found or F-Droid build - skipping signing")
+            }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Play Store optimization
+            isDebuggable = false
+            isJniDebuggable = false
+            
+            // Bundle debug symbols in the AAB for Play Console crash reports
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+        }
+        debug {
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.3"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/NOTICE.md"
+            excludes += "META-INF/versions/9/module-info.class"
+        }
+        // 16 KB page alignment: store native libs uncompressed & page-aligned
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+    
+    bundle {
+        language {
+            enableSplit = false
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+    
+    // Custom APK naming with app name, version and flavor
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            if (variant.buildType.name == "release" && variant.flavorName != "fdroid") {
+                val flavorName = variant.flavorName
+                outputImpl.outputFileName = "pdftoolkit-${flavorName}-v${variant.versionName}.apk"
+            }
+        }
+    }
+}
+
+dependencies {
+    // AndroidX Core & Lifecycle
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    
+    // AppCompat for uCrop compatibility
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    
+    // RecyclerView for PDF viewer page management
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    
+    // ExifInterface for EXIF metadata reading (Apache 2.0)
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+    // Compose BOM 2023.10.01 - Stable version
+    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    // Using extended icons - consider switching to subset for smaller APK
+    implementation("androidx.compose.material:material-icons-extended")
+    
+    // Compose Navigation & ViewModel
+    implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // PDF Tools - PdfBox-Android for PDF manipulation
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // CameraX for Scan to PDF (Apache 2.0)
+    // v1.4.1+ includes 16KB page-aligned native libraries
+    val cameraxVersion = "1.4.1"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    
+    // OCR Libraries - flavor-specific
+    // Play Store: ML Kit (proprietary, smaller APK + 40MB runtime download)
+    "playstoreImplementation"("com.google.mlkit:text-recognition:16.0.1")
+    "playstoreImplementation"("com.google.android.play:review:2.0.1")
+
+    // F-Droid: Tesseract (open source, larger APK but no runtime downloads)
+    "fdroidImplementation"("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+
+    // F-Droid: MuPDF for PDF viewer (fully open source, high performance)
+    // NOTE: MuPDF requires custom repository setup. Commented out until configured.
+    // "fdroidImplementation"("com.artifex.mupdf:fitz:1.24.9")
+
+    // Open Source: Tesseract (same as F-Droid, fully open source)
+    "opensourceImplementation"("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+
+    // Open Source: MuPDF for PDF viewer
+    // NOTE: MuPDF requires custom repository setup. Commented out until configured.
+    // "opensourceImplementation"("com.artifex.mupdf:fitz:1.24.9")
+    
+    // Coil for image loading (Apache 2.0) - lightweight (~2MB)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    
+    // Glide for advanced image loading with EXIF rotation support (BSD-like license)
+    // v4.16.0+ AVIF decoder is 16KB page-aligned
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    ksp("com.github.bumptech.glide:ksp:4.16.0")
+    
+    // uCrop for lightweight image cropping (Apache 2.0)
+    // v2.2.9+ includes 16KB page-aligned native libraries
+    implementation("com.github.yalantis:ucrop:2.2.9")
+
+    // Room Database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+    
+    // DataStore for preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.11.1")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+
+    // Debug
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Fragment KTX (used by legacy viewer and other components)
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
+}
+dependencies {
+    testImplementation("androidx.test:core-ktx:1.5.0")
+    testImplementation("androidx.test.ext:junit-ktx:1.1.5")
+}

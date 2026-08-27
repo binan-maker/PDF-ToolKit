@@ -1,0 +1,21 @@
+PDF Toolkit is a comprehensive PDF and image manipulation tool for Android.
+
+Features include:
+* Merge multiple PDFs into one
+* Split PDF into multiple files
+* Compress PDF to reduce file size
+* Convert PDF pages to images
+* Convert images to PDF
+* Reorder, rotate, and delete PDF pages
+* Extract specific pages from PDF
+* Add watermarks and page numbers
+* Password protect PDFs (lock/unlock)
+* Sign PDFs with digital signatures
+* OCR using Tesseract (open source)
+* Scan documents to PDF using camera
+* Extract text from PDFs
+* View and edit PDF metadata
+* Image tools (compress, resize, convert formats)
+
+The F-Droid version uses Tesseract OCR instead of Google ML Kit
+to maintain compatibility with F-Droid's free software requirements.

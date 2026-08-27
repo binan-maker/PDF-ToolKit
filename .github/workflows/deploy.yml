@@ -1,0 +1,389 @@
+name: Deploy to Play Store & Indus App Store
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+# Cancel any in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Write permission needed for GitHub releases
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 1. Checkout the repository
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 2. Set up Java
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 3. Read Version Code and Version Name from gradle.properties (Sole Source of Truth)
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Read Version from gradle.properties
+        id: version
+        run: |
+          VERSION_CODE=$(grep '^APP_VERSION_CODE=' gradle.properties | cut -d'=' -f2 | tr -d '[:space:]')
+          VERSION_NAME=$(grep '^APP_VERSION_NAME=' gradle.properties | cut -d'=' -f2 | tr -d '[:space:]')
+          
+          echo "BUILD_NUMBER=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "APP_VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          echo "APP_VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          
+          echo "================================================"
+          echo "Read versionCode: $VERSION_CODE from gradle.properties"
+          echo "Read versionName: $VERSION_NAME from gradle.properties"
+          echo "================================================"
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Generate Release Notes
+        id: generate-notes
+        run: |
+          # Extract the latest commit message for release metadata
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          COMMIT_HASH=$(git log -1 --pretty=format:"%h")
+          BUILD_DATE=$(date -u +"%Y-%m-%d")
+          
+          # Write to release_description.txt (artifact-level description)
+          cat > release_description.txt <<EOF
+          Build: v${{ env.APP_VERSION_NAME }} (code ${{ env.APP_VERSION_CODE }})
+          Date:  ${BUILD_DATE}
+          Commit: ${COMMIT_HASH}
+          
+          ${COMMIT_MSG}
+          EOF
+          
+          # Update whatsnew for Play Store listing
+          cat > distribution/whatsnew/whatsnew-en-US <<EOF
+          Version ${{ env.APP_VERSION_NAME }} - Dynamic versioning update
+          
+          • Implemented CI/CD dynamic versioning
+          • No more version conflicts in git
+          • Automatic version increments per build
+          • Improved deployment reliability
+          EOF
+          
+          # Set output for GitHub Release
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat distribution/whatsnew/whatsnew-en-US >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "=== Release Description ==="
+          cat release_description.txt
+          echo ""
+          echo "=== What's New ==="
+          cat distribution/whatsnew/whatsnew-en-US
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 5. Decode the Android Keystore from secrets
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Decode Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > keystore.jks
+          cp keystore.jks app/keystore.jks
+          echo "Keystore decoded successfully"
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 6. Create Play Store JSON Key
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Create Play Store JSON Key
+        env:
+          PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
+        run: |
+          echo "$PLAY_STORE_JSON_KEY" > play-store-key.json
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 7. Make gradlew executable
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 8. Build Release AAB and APKs (PlayStore + OpenSource)
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Build Release AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ANDROID_KEYSTORE_FILE: keystore.jks
+          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
+          CI: true
+        run: |
+          echo "Building AAB — versionCode=${{ env.APP_VERSION_CODE }}, versionName=${{ env.APP_VERSION_NAME }}"
+          ./gradlew bundlePlaystoreRelease
+
+      - name: Build Play Store APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ANDROID_KEYSTORE_FILE: keystore.jks
+          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
+          CI: true
+        run: |
+          echo "Building Play Store APK — versionCode=${{ env.APP_VERSION_CODE }}, versionName=${{ env.APP_VERSION_NAME }}"
+          ./gradlew assemblePlaystoreRelease
+
+      - name: Build Open Source APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ANDROID_KEYSTORE_FILE: keystore.jks
+          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
+          CI: true
+        run: |
+          echo "Building Open Source APK — versionCode=${{ env.APP_VERSION_CODE }}, versionName=${{ env.APP_VERSION_NAME }}"
+          ./gradlew assembleOpensourceRelease
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 9. Verify Build Outputs
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Verify Build Outputs
+        run: |
+          echo "=== AAB Files ==="
+          ls -lh app/build/outputs/bundle/playstoreRelease/*.aab
+          echo "=== Play Store APK ==="
+          ls -lh app/build/outputs/apk/playstore/release/*.apk || echo "Play Store APK not found"
+          echo "=== Open Source APK ==="
+          ls -lh app/build/outputs/apk/opensource/release/*.apk || echo "Open Source APK not found"
+          echo "=== F-Droid APK ==="
+          ls -lh app/build/outputs/apk/fdroid/release/*.apk || echo "F-Droid APK not found"
+          echo "=== Mapping File ==="
+          ls -lh app/build/outputs/mapping/playstoreRelease/mapping.txt || echo "No mapping file found"
+          echo "=== Version ==="
+          echo "versionCode: ${{ env.APP_VERSION_CODE }}"
+          echo "versionName: ${{ env.APP_VERSION_NAME }}"
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 10. Upload AAB and APKs as build artifacts
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdftoolkit-aab-v${{ env.APP_VERSION_NAME }}
+          path: app/build/outputs/bundle/playstoreRelease/app-playstore-release.aab
+          retention-days: 30
+
+      - name: Upload PlayStore APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdftoolkit-playstore-apk-v${{ env.APP_VERSION_NAME }}
+          path: app/build/outputs/apk/playstore/release/*.apk
+          retention-days: 30
+
+      - name: Upload OpenSource APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdftoolkit-opensource-apk-v${{ env.APP_VERSION_NAME }}
+          path: app/build/outputs/apk/opensource/release/*.apk
+          retention-days: 30
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 11. Deploy to Google Play Internal Track
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Upload to Play Store
+        id: upload-play-store
+        continue-on-error: true
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: play-store-key.json
+          packageName: com.yourname.pdftoolkit
+          releaseFiles: app/build/outputs/bundle/playstoreRelease/*.aab
+          tracks: internal
+          status: completed
+          mappingFile: app/build/outputs/mapping/playstoreRelease/mapping.txt
+          debugSymbols: app/build/intermediates/merged_native_libs/playstoreRelease/mergePlaystoreReleaseNativeLibs/out/lib
+          whatsNewDirectory: distribution/whatsnew
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 12. Deploy to Indus App Store
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Upload to Indus App Store
+        id: upload-indus-store
+        continue-on-error: true
+        run: |
+          AAB_FILE=$(ls app/build/outputs/bundle/playstoreRelease/*.aab | head -n 1)
+          KEYSTORE_FILE="keystore.jks"
+          
+          echo "Uploading to Indus App Store..."
+          echo "AAB File: $AAB_FILE"
+          echo "Keystore: $KEYSTORE_FILE"
+          
+          # Create multipart form data request
+          RESPONSE=$(curl -X POST \
+            "https://developer-api.indusappstore.com/devtools/aab/upgrade/com.yourname.pdftoolkit" \
+            -H "Authorization: ${{ secrets.INDUS_APP_STORE_KEY }}" \
+            -F "file=@${AAB_FILE}" \
+            -F "file=@${KEYSTORE_FILE}" \
+            -F "keyPassword=${{ secrets.KEY_PASSWORD }}" \
+            -F "keystoreAlias=${{ secrets.KEY_ALIAS }}" \
+            -F "keystorePassword=${{ secrets.KEYSTORE_PASSWORD }}" \
+            -w "\n%{http_code}" \
+            -s)
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          # Check for success (2xx)
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✓ Successfully uploaded to Indus App Store"
+            echo "indus_status=success" >> $GITHUB_OUTPUT
+            exit 0
+          # Check for 409 (app under review)
+          elif [ "$HTTP_CODE" -eq 409 ]; then
+            echo "⚠ Indus App Store: App is currently under review"
+            echo "Skipping upload - previous version is being reviewed"
+            echo "indus_status=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          # Check for 400 (version already exists or other validation error)
+          elif [ "$HTTP_CODE" -eq 400 ]; then
+            echo "⚠ Indus App Store: Version validation error"
+            echo "Response: $BODY"
+            echo "indus_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✗ Failed to upload to Indus App Store"
+            echo "Response body: $BODY"
+            echo "indus_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 13. Check Deployment Results
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Check Deployment Results
+        run: |
+          echo "=== Deployment Summary ==="
+          echo "Play Store: ${{ steps.upload-play-store.outcome }}"
+          echo "Indus App Store: ${{ steps.upload-indus-store.outcome }}"
+          
+          INDUS_STATUS="${{ steps.upload-indus-store.outputs.indus_status }}"
+          echo "Indus Status Detail: $INDUS_STATUS"
+          
+          # Fail the job only if BOTH deployments failed
+          if [[ "${{ steps.upload-play-store.outcome }}" == "failure" && "${{ steps.upload-indus-store.outcome }}" == "failure" ]]; then
+            # But don't fail if Indus was skipped due to review
+            if [[ "$INDUS_STATUS" == "skipped" ]]; then
+              echo "INFO: Indus App Store skipped (under review), but Play Store failed"
+              exit 1
+            fi
+            echo "ERROR: Both store deployments failed!"
+            exit 1
+          fi
+          
+          if [[ "${{ steps.upload-play-store.outcome }}" == "failure" ]]; then
+            echo "WARNING: Play Store deployment failed, but Indus App Store succeeded"
+          fi
+          
+          if [[ "${{ steps.upload-indus-store.outcome }}" == "failure" ]]; then
+            if [[ "$INDUS_STATUS" == "skipped" ]]; then
+              echo "INFO: Indus App Store skipped - app is under review"
+            else
+              echo "WARNING: Indus App Store deployment failed, but Play Store succeeded"
+            fi
+          fi
+          
+          echo "At least one deployment succeeded or was skipped"
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 14. Create GitHub Release with All Files (AAB + Both APKs)
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION_NAME }}
+          name: "PDFToolkit v${{ env.APP_VERSION_NAME }}"
+          body: |
+            ## PDF Toolkit v${{ env.APP_VERSION_NAME }} (Build ${{ env.APP_VERSION_CODE }})
+            
+            ### What's New
+            ${{ steps.generate-notes.outputs.release_notes }}
+            
+            ### Deployment Status
+            - Play Store: ${{ steps.upload-play-store.outcome == 'success' && '✅ Deployed' || '❌ Failed' }}
+            - Indus App Store: ${{ steps.upload-indus-store.outputs.indus_status == 'success' && '✅ Deployed' || steps.upload-indus-store.outputs.indus_status == 'skipped' && '⏭️ Skipped (Under Review)' || '❌ Failed' }}
+            
+            ### 📱 APK Downloads
+            
+            **Play Store Variant:** Standard release with Play Services integration
+            - ML Kit OCR (smaller APK, downloads ML models on-demand)
+            - Google Play In-App Review API
+            - Optimized for Play Store distribution
+            
+            **Open Source Variant:** Fully open source with no proprietary dependencies
+            - Tesseract OCR (fully offline, larger APK but no runtime downloads)
+            - No Firebase or Google Play Services dependencies
+            - 100% FOSS (Free and Open Source Software)
+            
+            ### Build Info
+            - Version Code: ${{ env.APP_VERSION_CODE }}
+            - Version Name: ${{ env.APP_VERSION_NAME }}
+            - Min SDK: 26 (Android 8.0)
+            - Target SDK: 35 (Android 15)
+            - Build Number: ${{ github.run_number }}
+            
+            ### Downloads
+            - **AAB** - Android App Bundle for app stores
+            - **PlayStore APK** - For sideloading with Play Services
+            - **OpenSource APK** - For privacy-conscious users, fully offline
+          files: |
+            app/build/outputs/bundle/playstoreRelease/*.aab
+            app/build/outputs/apk/playstore/release/*.apk
+            app/build/outputs/apk/opensource/release/*.apk
+            app/build/outputs/mapping/playstoreRelease/mapping.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ════════════════════════════════════════════════════════════════════════════════
+      # 15. Post-deploy summary
+      # ════════════════════════════════════════════════════════════════════════════════
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "## ✅ Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **App** | PDF Toolkit |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Package** | com.yourname.pdftoolkit |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Track** | Internal Testing |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version Name** | ${{ env.APP_VERSION_NAME }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version Code** | ${{ env.APP_VERSION_CODE }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Build Number** | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
