@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -40,7 +41,6 @@ import com.yourname.pdftoolkit.util.ThemeMode
 import com.yourname.pdftoolkit.util.PdfTools
 import com.yourname.pdftoolkit.util.LanguageManager
 import com.yourname.pdftoolkit.R
-import com.yourname.pdftoolkit.ui.components.ToolTopBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,6 +57,7 @@ enum class DefaultImageFormat(val displayName: String, val extension: String) {
 private data class SettingsColors(
     val canvas: Color,
     val card: Color,
+    val cardStrong: Color,
     val ink: Color,
     val muted: Color,
     val accent: Color,
@@ -69,6 +70,7 @@ private data class SettingsColors(
                 SettingsColors(
                     canvas = Color(0xFF111116),
                     card = Color(0xFF1A1A21),
+                    cardStrong = Color(0xFF24242D),
                     ink = Color(0xFFF5F3F7),
                     muted = Color(0xFFB4AFBC),
                     accent = Color(0xFFFF826D),
@@ -79,6 +81,7 @@ private data class SettingsColors(
                 SettingsColors(
                     canvas = Color(0xFFF8F7FB),
                     card = Color(0xFFFFFFFF),
+                    cardStrong = Color(0xFF1E1D29),
                     ink = Color(0xFF1E1D29),
                     muted = Color(0xFF777481),
                     accent = Color(0xFFFF6B57),
@@ -176,9 +179,10 @@ fun SettingsScreen(
     Scaffold(
         containerColor = settingsColors.canvas,
         topBar = {
-            ToolTopBar(
+            SettingsTopBar(
                 title = stringResource(R.string.settings_title),
-                onNavigateBack = onNavigateBack
+                onNavigateBack = onNavigateBack,
+                colors = settingsColors
             )
         }
     ) { paddingValues ->
@@ -190,6 +194,10 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
         ) {
+            item {
+                SettingsHero(colors = settingsColors)
+            }
+
             // Quality Settings Section
             item {
                 SettingsSectionHeader(
@@ -375,20 +383,7 @@ fun SettingsScreen(
                         .padding(horizontal = 20.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = settingsColors.accentSoft,
-                        modifier = Modifier.size(64.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.PictureAsPdf,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .size(32.dp),
-                            tint = settingsColors.accent
-                        )
-                    }
+                    SettingsBrandMark(colors = settingsColors, size = 64.dp)
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = stringResource(R.string.settings_app_name),
@@ -645,6 +640,166 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsTopBar(
+    title: String,
+    onNavigateBack: () -> Unit,
+    colors: SettingsColors
+) {
+    TopAppBar(
+        navigationIcon = {
+            Surface(
+                onClick = onNavigateBack,
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .size(42.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = colors.card,
+                border = BorderStroke(1.dp, colors.ink.copy(alpha = 0.08f))
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = stringResource(R.string.action_back),
+                        tint = colors.ink,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        },
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                SettingsBrandMark(colors = colors, size = 34.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.ink
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_topbar_subtitle),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.muted
+                    )
+                }
+            }
+        },
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = colors.canvas
+        )
+    )
+}
+
+@Composable
+private fun SettingsBrandMark(
+    colors: SettingsColors,
+    size: androidx.compose.ui.unit.Dp
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(colors.accent, colors.iconColors[1])
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.AutoAwesome,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(size * 0.56f)
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(size * 0.18f)
+                .size(size * 0.11f)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.9f))
+        )
+    }
+}
+
+@Composable
+private fun SettingsHero(colors: SettingsColors) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.cardStrong),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            colors.cardStrong,
+                            colors.cardStrong.copy(alpha = 0.92f),
+                            colors.iconColors[1].copy(alpha = 0.72f)
+                        )
+                    )
+                )
+                .padding(22.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = colors.accent.copy(alpha = 0.18f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_hero_eyebrow),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.1.sp,
+                            color = colors.accent
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_hero_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_hero_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.72f)
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun getQualityDescription(quality: Int): String {
     return when {
@@ -664,16 +819,28 @@ private fun SettingsSectionHeader(
     val isDarkTheme = isSystemInDarkTheme()
     val colors = remember(isDarkTheme) { SettingsColors.forTheme(isDarkTheme) }
 
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = colors.accent,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.4.sp,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = topPadding, bottom = 8.dp)
-    )
+            .padding(start = 20.dp, end = 20.dp, top = topPadding, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(18.dp)
+                .clip(RoundedCornerShape(50))
+                .background(colors.accent)
+        )
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.accent,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -687,15 +854,16 @@ private fun SettingsItem(
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val colors = remember(isDarkTheme) { SettingsColors.forTheme(isDarkTheme) }
+    val iconColor = colors.iconColors[title.length % colors.iconColors.size]
 
     Card(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(18.dp),
+            .padding(horizontal = 20.dp, vertical = 5.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = colors.card),
-        border = BorderStroke(1.dp, colors.muted.copy(alpha = 0.12f)),
+        border = BorderStroke(1.dp, iconColor.copy(alpha = 0.15f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -706,7 +874,7 @@ private fun SettingsItem(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = colors.accentSoft,
+                color = iconColor.copy(alpha = 0.14f),
                 modifier = Modifier.size(42.dp)
             ) {
                 Icon(
@@ -714,7 +882,7 @@ private fun SettingsItem(
                     contentDescription = title,
                     modifier = Modifier
                         .padding(9.dp),
-                    tint = colors.accent
+                    tint = iconColor
                 )
             }
 
@@ -738,11 +906,18 @@ private fun SettingsItem(
             if (trailing != null) {
                 trailing()
             } else {
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = colors.muted
-                )
+                Surface(
+                    shape = CircleShape,
+                    color = iconColor.copy(alpha = 0.10f),
+                    modifier = Modifier.size(30.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.padding(6.dp)
+                    )
+                }
             }
         }
     }

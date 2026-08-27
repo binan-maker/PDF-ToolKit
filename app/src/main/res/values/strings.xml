@@ -65,6 +65,7 @@
     <string name="category_quick_actions">Quick Actions</string>
     <string name="category_image_tools">Image Tools</string>
     <string name="category_view_export">View &amp; Export</string>
+    <string name="tools_all">All tools</string>
 
     <!-- Tool Names - Organize -->
     <string name="tool_merge_pdfs">Merge PDFs</string>
@@ -220,6 +221,10 @@
 
     <!-- Settings Screen -->
     <string name="settings_title">Settings</string>
+    <string name="settings_topbar_subtitle">Your Paperly workspace</string>
+    <string name="settings_hero_eyebrow">PAPERLY CONTROL CENTER</string>
+    <string name="settings_hero_title">Make it feel like yours.</string>
+    <string name="settings_hero_subtitle">Tune your documents, appearance, and privacy in one calm place.</string>
     <string name="settings_section_quality">Quality Settings</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_section_storage">Storage</string>

@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -167,6 +168,7 @@ fun ToolsScreen(
     val allTools = getAllTools()
     val isDarkTheme = isSystemInDarkTheme()
     val homeColors = remember(isDarkTheme) { HomeColors.forTheme(isDarkTheme) }
+    var selectedSection by remember { mutableStateOf<ToolSection?>(null) }
 
     fun openTool(tool: ToolItem) {
         if (tool.screen == Screen.Home && tool.id == "view_pdf") {
@@ -201,23 +203,15 @@ fun ToolsScreen(
             }
 
             item {
-                HomeSectionHeading(
-                    eyebrow = stringResource(R.string.category_quick_actions).uppercase(),
-                    title = stringResource(R.string.home_quick_actions_title),
+                ToolFilterRail(
+                    selectedSection = selectedSection,
+                    onSectionSelected = { selectedSection = it },
                     colors = homeColors
                 )
             }
 
-            item {
-                ToolGrid(
-                    tools = allTools.filter { it.section == ToolSection.QUICK_ACTIONS },
-                    colors = homeColors,
-                    onToolClick = ::openTool
-                )
-            }
-
             ToolSection.entries
-                .filter { it != ToolSection.QUICK_ACTIONS }
+                .filter { selectedSection == null || it == selectedSection }
                 .forEach { section ->
                     val sectionTools = allTools.filter { it.section == section }
                     if (sectionTools.isNotEmpty()) {
@@ -225,6 +219,7 @@ fun ToolsScreen(
                             HomeSectionHeading(
                                 eyebrow = getSectionTitle(section).uppercase(),
                                 title = getSectionTitle(section),
+                                count = sectionTools.size,
                                 colors = homeColors
                             )
                         }
@@ -367,22 +362,119 @@ private fun HomeHero(
 private fun HomeSectionHeading(
     eyebrow: String,
     title: String,
+    count: Int? = null,
     colors: HomeColors
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(
-            text = eyebrow,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.4.sp,
-            color = colors.accent
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = eyebrow,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.4.sp,
+                color = colors.accent
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = colors.ink
+            )
+        }
+
+        if (count != null) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = colors.card,
+                border = BorderStroke(1.dp, colors.ink.copy(alpha = 0.08f))
+            ) {
+                Text(
+                    text = count.toString().padStart(2, '0'),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.muted
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolFilterRail(
+    selectedSection: ToolSection?,
+    onSectionSelected: (ToolSection?) -> Unit,
+    colors: HomeColors
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        HomeSectionHeading(
+            eyebrow = stringResource(R.string.category_quick_actions).uppercase(),
+            title = stringResource(R.string.home_quick_actions_title),
+            colors = colors
         )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = colors.ink
-        )
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(end = 4.dp)
+        ) {
+            item {
+                ToolFilterChip(
+                    label = stringResource(R.string.tools_all),
+                    selected = selectedSection == null,
+                    color = colors.accent,
+                    onClick = { onSectionSelected(null) }
+                )
+            }
+            items(ToolSection.entries.size) { index ->
+                val section = ToolSection.entries[index]
+                ToolFilterChip(
+                    label = getSectionTitle(section),
+                    selected = selectedSection == section,
+                    color = colors.iconColors[section.ordinal % colors.iconColors.size],
+                    onClick = { onSectionSelected(section) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ToolFilterChip(
+    label: String,
+    selected: Boolean,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = if (selected) color else color.copy(alpha = 0.10f),
+        contentColor = if (selected) Color.White else color,
+        border = if (selected) null else BorderStroke(1.dp, color.copy(alpha = 0.20f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (selected) Color.White else color)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -457,7 +549,7 @@ private fun ToolCard(
         onClick = onClick,
         modifier = modifier
             .scale(scale)
-            .height(124.dp),
+            .height(148.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = colors.card
@@ -468,37 +560,64 @@ private fun ToolCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
+        val accent = colors.iconColors[tool.section.ordinal % colors.iconColors.size]
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start,
+                .padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = colors.iconColors[tool.section.ordinal % colors.iconColors.size].copy(alpha = 0.14f),
-                modifier = Modifier.size(38.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = accent.copy(alpha = 0.14f),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(
+                        imageVector = tool.icon,
+                        contentDescription = tool.getTitle(),
+                        tint = accent,
+                        modifier = Modifier
+                            .padding(9.dp)
+                            .size(24.dp)
+                    )
+                }
+
                 Icon(
-                    imageVector = tool.icon,
-                    contentDescription = tool.getTitle(),
-                    tint = colors.iconColors[tool.section.ordinal % colors.iconColors.size],
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .size(22.dp)
+                    imageVector = Icons.Default.ArrowOutward,
+                    contentDescription = null,
+                    tint = colors.muted.copy(alpha = 0.58f),
+                    modifier = Modifier.size(17.dp)
                 )
             }
 
-            Text(
-                text = tool.getTitle(),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Start,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = colors.ink
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = tool.getTitle(),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Start,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = colors.ink
+                )
+                Text(
+                    text = tool.getDescription(),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = colors.muted,
+                    lineHeight = 16.sp
+                )
+            }
         }
     }
 }

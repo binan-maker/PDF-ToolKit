@@ -12,13 +12,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -364,16 +365,33 @@ fun AppNavigation(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Surface(
-                                    modifier = Modifier.size(32.dp),
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(13.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    Color(0xFFFF6B57),
+                                                    Color(0xFF7658E8)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.PictureAsPdf,
+                                        imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        modifier = Modifier.padding(7.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        modifier = Modifier.size(21.dp),
+                                        tint = Color.White
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(7.dp)
+                                            .size(4.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(Color.White.copy(alpha = 0.9f))
                                     )
                                 }
                                 Text(
@@ -388,15 +406,25 @@ fun AppNavigation(
                             }
                         },
                         actions = {
-                            IconButton(
+                            Surface(
                                 onClick = {
                                     safeNavigate(navController, Screen.Settings.route)
-                                }
+                                },
+                                modifier = Modifier.size(42.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = stringResource(R.string.settings_title)
-                                )
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = stringResource(R.string.settings_title),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
@@ -847,10 +875,10 @@ private fun BottomNavigationBar(
     }
 }
 
-    @Composable
-    private fun getTabTitle(tab: BottomNavTab): String {
-        return when (tab) {
-            BottomNavTab.HOME -> stringResource(R.string.nav_tab_home)
-            BottomNavTab.FILES -> stringResource(R.string.nav_tab_files)
-        }
+@Composable
+private fun getTabTitle(tab: BottomNavTab): String {
+    return when (tab) {
+        BottomNavTab.HOME -> stringResource(R.string.nav_tab_home)
+        BottomNavTab.FILES -> stringResource(R.string.nav_tab_files)
     }
+}
