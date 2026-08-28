@@ -138,15 +138,6 @@ fun ExtractTextScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            PdfToolHeroCard(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                kicker = "CONVERT / TEXT",
-                title = "Give your PDF\na voice.",
-                description = "Extract clean, editable text from every page.",
-                leadingIcon = Icons.Default.TextFields,
-                secondaryIcon = Icons.Default.ContentCopy
-            )
-
             // Content area
             Box(
                 modifier = Modifier
@@ -154,12 +145,32 @@ fun ExtractTextScreen(
                     .fillMaxWidth()
             ) {
                 if (selectedFile == null) {
-                    EmptyState(
-                        icon = Icons.Default.TextFields,
-                        title = stringResource(R.string.metadata_no_pdf_selected),
-                        subtitle = stringResource(R.string.extract_no_pdf_subtitle),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        PdfToolHeroCard(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            kicker = "CONVERT / TEXT",
+                            title = "Give your PDF\na voice.",
+                            description = "Extract clean, editable text from every page.",
+                            leadingIcon = Icons.Default.TextFields,
+                            secondaryIcon = Icons.Default.ContentCopy
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(
+                                icon = Icons.Default.TextFields,
+                                title = stringResource(R.string.metadata_no_pdf_selected),
+                                subtitle = stringResource(R.string.extract_no_pdf_subtitle)
+                            )
+                        }
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -168,6 +179,17 @@ fun ExtractTextScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
+                        item {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "CONVERT / TEXT",
+                                title = "Give your PDF\na voice.",
+                                description = "Extract clean, editable text from every page.",
+                                leadingIcon = Icons.Default.TextFields,
+                                secondaryIcon = Icons.Default.ContentCopy
+                            )
+                        }
+
                         // Selected file info
                         item {
                             FileItemCard(

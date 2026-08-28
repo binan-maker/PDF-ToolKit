@@ -28,8 +28,10 @@ class PdfToolkitApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize PdfBox-Android
-        PDFBoxResourceLoader.init(applicationContext)
+        // Initialize PdfBox-Android without delaying the first Activity frame.
+        applicationScope.launch {
+            PDFBoxResourceLoader.init(applicationContext)
+        }
 
         // Initialize In-App Review system for session tracking
         ReviewIntegration.initialize(this)

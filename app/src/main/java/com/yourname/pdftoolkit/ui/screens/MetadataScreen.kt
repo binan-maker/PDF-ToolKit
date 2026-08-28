@@ -276,15 +276,6 @@ fun MetadataScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            PdfToolHeroCard(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                kicker = "VIEW / INSPECT",
-                title = "See what your\nPDF is carrying.",
-                description = "Read the details behind the document before you share it.",
-                leadingIcon = Icons.Default.Info,
-                secondaryIcon = Icons.Default.PictureAsPdf
-            )
-
             // Content area
             Box(
                 modifier = Modifier
@@ -293,17 +284,56 @@ fun MetadataScreen(
             ) {
                 when {
                     selectedFile == null -> {
-                        EmptyState(
-                            icon = Icons.Default.Info,
-                            title = stringResource(R.string.metadata_no_pdf_selected),
-                            subtitle = stringResource(R.string.metadata_no_pdf_selected_subtitle),
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "VIEW / INSPECT",
+                                title = "See what your\nPDF is carrying.",
+                                description = "Read the details behind the document before you share it.",
+                                leadingIcon = Icons.Default.Info,
+                                secondaryIcon = Icons.Default.PictureAsPdf
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                EmptyState(
+                                    icon = Icons.Default.Info,
+                                    title = stringResource(R.string.metadata_no_pdf_selected),
+                                    subtitle = stringResource(R.string.metadata_no_pdf_selected_subtitle)
+                                )
+                            }
+                        }
                     }
                     isLoading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "VIEW / INSPECT",
+                                title = "See what your\nPDF is carrying.",
+                                description = "Read the details behind the document before you share it.",
+                                leadingIcon = Icons.Default.Info,
+                                secondaryIcon = Icons.Default.PictureAsPdf
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                     metadata != null -> {
                         LazyColumn(
@@ -313,6 +343,17 @@ fun MetadataScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                         ) {
+                            item {
+                                PdfToolHeroCard(
+                                    modifier = Modifier.padding(bottom = 8.dp),
+                                    kicker = "VIEW / INSPECT",
+                                    title = "See what your\nPDF is carrying.",
+                                    description = "Read the details behind the document before you share it.",
+                                    leadingIcon = Icons.Default.Info,
+                                    secondaryIcon = Icons.Default.PictureAsPdf
+                                )
+                            }
+
                             // Selected file info
                             item {
                                 Card(

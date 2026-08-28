@@ -188,15 +188,6 @@ fun PageNumberScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            PdfToolHeroCard(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                kicker = "VIEW / ORGANIZE",
-                title = "Give every page\nits place.",
-                description = "Add a clear, consistent page number style in a few taps.",
-                leadingIcon = Icons.Default.FormatListNumbered,
-                secondaryIcon = Icons.Default.PictureAsPdf
-            )
-
             // Content area
             Box(
                 modifier = Modifier
@@ -204,12 +195,32 @@ fun PageNumberScreen(
                     .fillMaxWidth()
             ) {
                 if (selectedFile == null) {
-                    EmptyState(
-                        icon = Icons.Default.FormatListNumbered,
-                        title = stringResource(R.string.metadata_no_pdf_selected),
-                        subtitle = stringResource(R.string.pagenum_no_pdf_subtitle),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        PdfToolHeroCard(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            kicker = "VIEW / ORGANIZE",
+                            title = "Give every page\nits place.",
+                            description = "Add a clear, consistent page number style in a few taps.",
+                            leadingIcon = Icons.Default.FormatListNumbered,
+                            secondaryIcon = Icons.Default.PictureAsPdf
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(
+                                icon = Icons.Default.FormatListNumbered,
+                                title = stringResource(R.string.metadata_no_pdf_selected),
+                                subtitle = stringResource(R.string.pagenum_no_pdf_subtitle)
+                            )
+                        }
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -218,6 +229,17 @@ fun PageNumberScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
+                        item {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "VIEW / ORGANIZE",
+                                title = "Give every page\nits place.",
+                                description = "Add a clear, consistent page number style in a few taps.",
+                                leadingIcon = Icons.Default.FormatListNumbered,
+                                secondaryIcon = Icons.Default.PictureAsPdf
+                            )
+                        }
+
                         // Selected file info
                         item {
                             FileItemCard(

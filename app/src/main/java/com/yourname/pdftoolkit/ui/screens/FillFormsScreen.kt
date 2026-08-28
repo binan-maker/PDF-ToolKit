@@ -216,7 +216,8 @@ fun FillFormsScreen(
                     start = 16.dp,
                     end = 16.dp,
                     bottom = 16.dp
-                ),
+                )
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             PdfToolHeroCard(
@@ -369,10 +370,10 @@ fun FillFormsScreen(
             // Form Fields
             AnimatedVisibility(
                 visible = !state.isAnalyzing && state.hasForm && state.fields.isNotEmpty() && state.fillableFields > 0,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Card(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
@@ -388,7 +389,7 @@ fun FillFormsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         LazyColumn(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.heightIn(max = 400.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(state.fields.filter { it !is FormField.UnknownField && !it.isReadOnly }) { field ->

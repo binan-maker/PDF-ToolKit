@@ -174,7 +174,7 @@ open class PdfViewerViewModel : ViewModel() {
 
     // Search Job Control
     private var searchJob: Job? = null
-    
+
     // Page state tracking for error handling
     sealed class PageRenderState {
         object Idle : PageRenderState()
@@ -183,21 +183,21 @@ open class PdfViewerViewModel : ViewModel() {
         data class Error(val pageIndex: Int, val message: String) : PageRenderState()
     }
     private val _pageStates = MutableStateFlow<Map<Int, PageRenderState>>(emptyMap())
-    
+
     // Current page tracking for memory management
     private var _currentPage: Int = 0
-    
+
     // Safe bitmap lifecycle management - prevents recycled bitmap crashes
     private val activeBitmaps = Collections.synchronizedSet(mutableSetOf<Bitmap>())
     private val uiBitmapRefs = mutableMapOf<Int, Bitmap>()
-    
+
     private fun safeRecycle(bitmap: Bitmap?) {
         bitmap ?: return
         if (!bitmap.isRecycled && !activeBitmaps.contains(bitmap)) {
             bitmap.recycle()
         }
     }
-    
+
     private fun registerActiveBitmap(pageIndex: Int, bitmap: Bitmap) {
         if (bitmap.isRecycled) {
             Log.w("PdfViewerVM", "Skipping active registration for recycled bitmap on page $pageIndex")
@@ -220,7 +220,7 @@ open class PdfViewerViewModel : ViewModel() {
             uiBitmapRefs[pageIndex] = bitmap
         }
     }
-    
+
     private fun unregisterBitmap(pageIndex: Int) {
         synchronized(activeBitmaps) {
             uiBitmapRefs.remove(pageIndex)?.let { oldBitmap ->
@@ -238,10 +238,6 @@ open class PdfViewerViewModel : ViewModel() {
         loadJob = viewModelScope.launch {
             _uiState.value = PdfViewerUiState.Loading
             try {
-                if (!PDFBoxResourceLoader.isReady()) {
-                    PDFBoxResourceLoader.init(context.applicationContext)
-                }
-
                 // Pre-open memory check
                 val runtime = Runtime.getRuntime()
                 val availableMemMb = (runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory()) / 1048576
@@ -252,6 +248,10 @@ open class PdfViewerViewModel : ViewModel() {
                 }
 
                 withContext(Dispatchers.IO) {
+                    if (!PDFBoxResourceLoader.isReady()) {
+                        PDFBoxResourceLoader.init(context.applicationContext)
+                    }
+
                     closeDocument() // Close existing if any, MUST be in IO dispatcher
 
                     // Use a temp file to load the PDF to avoid OOM with large files
@@ -315,18 +315,18 @@ open class PdfViewerViewModel : ViewModel() {
             }
         }
     }
-    
+
     // Update current page for memory management
     fun updateCurrentPage(pageIndex: Int) {
         _currentPage = pageIndex
     }
-    
+
     // Retry a failed page render
     fun retryPage(pageIndex: Int) {
         unregisterBitmap(pageIndex)
         bitmapCache.remove(pageIndex)
     }
-    
+
     fun getPageState(pageIndex: Int): PageRenderState {
         return _pageStates.value[pageIndex] ?: PageRenderState.Idle
     }
@@ -377,30 +377,30 @@ open class PdfViewerViewModel : ViewModel() {
         _annotations.value = currentList
     }
 
-fun undoAnnotation() {
-    if (_annotations.value.size > 500) throw OutOfMemoryError("PDF has too many annotations to process at once")
-    val currentList = _annotations.value.toMutableList()
-    if (currentList.isNotEmpty()) {
-        currentList.removeAt(currentList.lastIndex)
-        _annotations.value = currentList
-    }
-}
-
-fun eraseAnnotations(pageIndex: Int, eraserPoints: List<Offset>, eraserNormWidth: Float) {
-    val currentList = _annotations.value.toMutableList()
-    val threshold = (eraserNormWidth * 3f).coerceAtLeast(0.01f)
-    currentList.removeAll { stroke ->
-        if (stroke.pageIndex != pageIndex) return@removeAll false
-        stroke.points.any { sp ->
-            eraserPoints.any { ep ->
-                val dx = sp.x - ep.x
-                val dy = sp.y - ep.y
-                dx * dx + dy * dy < threshold * threshold
-            }
+    fun undoAnnotation() {
+        if (_annotations.value.size > 500) throw OutOfMemoryError("PDF has too many annotations to process at once")
+        val currentList = _annotations.value.toMutableList()
+        if (currentList.isNotEmpty()) {
+            currentList.removeAt(currentList.lastIndex)
+            _annotations.value = currentList
         }
     }
-    _annotations.value = currentList
-}
+
+    fun eraseAnnotations(pageIndex: Int, eraserPoints: List<Offset>, eraserNormWidth: Float) {
+        val currentList = _annotations.value.toMutableList()
+        val threshold = (eraserNormWidth * 3f).coerceAtLeast(0.01f)
+        currentList.removeAll { stroke ->
+            if (stroke.pageIndex != pageIndex) return@removeAll false
+            stroke.points.any { sp ->
+                eraserPoints.any { ep ->
+                    val dx = sp.x - ep.x
+                    val dy = sp.y - ep.y
+                    dx * dx + dy * dy < threshold * threshold
+                }
+            }
+        }
+        _annotations.value = currentList
+    }
 
     fun clearAnnotations() {
         _annotations.value = emptyList()
@@ -418,14 +418,14 @@ fun eraseAnnotations(pageIndex: Int, eraserPoints: List<Offset>, eraserNormWidth
         override fun sizeOf(key: Int, bitmap: Bitmap): Int {
             return bitmap.byteCount
         }
-        
+
         override fun entryRemoved(evicted: Boolean, key: Int, oldValue: Bitmap, newValue: Bitmap?) {
             if (oldValue !== newValue && !activeBitmaps.contains(oldValue)) {
                 safeRecycle(oldValue)
             }
         }
     }
-    
+
     private var loadJob: Job? = null
 
     private fun calculateCappedRenderScale(pageIndex: Int): Float {
@@ -441,7 +441,7 @@ fun eraseAnnotations(pageIndex: Int, eraserPoints: List<Offset>, eraserNormWidth
             RENDER_SCALE
         }
     }
-    
+
     suspend fun loadPage(pageIndex: Int): Bitmap? {
         val totalPages = (_uiState.value as? PdfViewerUiState.Loaded)?.totalPages ?: return null
         if (pageIndex < 0 || pageIndex >= totalPages) return null
@@ -580,7 +580,7 @@ fun eraseAnnotations(pageIndex: Int, eraserPoints: List<Offset>, eraserNormWidth
                     .map { it.trim() }
                     .filter { it.isNotBlank() }
                     .joinToString("\n")
-                
+
                 PageTextData(cleanedText, textPositions)
             }
             if (pageData != null) {
@@ -991,28 +991,25 @@ fun eraseAnnotations(pageIndex: Int, eraserPoints: List<Offset>, eraserNormWidth
                 _annotations.value = emptyList()
                 extractedTextCache.clear()
 
-                // GC Hint
-                System.gc()
-
                 document?.close()
             } catch (e: Throwable) {
                 Log.e("PdfViewerVM", "Error closing document", e)
             } finally {
-                 document = null
-                 pdfRenderer = null
-                 try {
-                     androidPdfRenderer?.close()
-                     androidPdfRenderer = null
-                 } catch (e: Exception) {}
-                 try {
-                     androidPdfPfd?.close()
-                     androidPdfPfd = null
-                 } catch (e: Exception) {}
-                 extractedTextCache.clear()
-                 // When navigating away from a PDF, trim cache to 0 immediately
-                 bitmapCache.trimToSize(0)
-                 
-                 // Clean up temp file
+                document = null
+                pdfRenderer = null
+                try {
+                    androidPdfRenderer?.close()
+                    androidPdfRenderer = null
+                } catch (e: Exception) {}
+                try {
+                    androidPdfPfd?.close()
+                    androidPdfPfd = null
+                } catch (e: Exception) {}
+                extractedTextCache.clear()
+                // When navigating away from a PDF, trim cache to 0 immediately
+                bitmapCache.trimToSize(0)
+
+                // Clean up temp file
                 try {
                     if (tempFile?.exists() == true) {
                         tempFile?.delete()

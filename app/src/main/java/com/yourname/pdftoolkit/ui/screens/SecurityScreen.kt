@@ -198,15 +198,6 @@ fun SecurityScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            PdfToolHeroCard(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                kicker = "SECURITY / PRIVATE",
-                title = "Put a lock\non your PDF.",
-                description = "Protect your document with a password you control.",
-                leadingIcon = Icons.Default.Lock,
-                secondaryIcon = Icons.Default.Security
-            )
-
             // Content area
             Box(
                 modifier = Modifier
@@ -214,12 +205,32 @@ fun SecurityScreen(
                     .fillMaxWidth()
             ) {
                 if (selectedFile == null) {
-                    EmptyState(
-                        icon = Icons.Default.Security,
-                        title = stringResource(R.string.metadata_no_pdf_selected),
-                        subtitle = stringResource(R.string.security_no_pdf_subtitle),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        PdfToolHeroCard(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            kicker = "SECURITY / PRIVATE",
+                            title = "Put a lock\non your PDF.",
+                            description = "Protect your document with a password you control.",
+                            leadingIcon = Icons.Default.Lock,
+                            secondaryIcon = Icons.Default.Security
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(
+                                icon = Icons.Default.Security,
+                                title = stringResource(R.string.metadata_no_pdf_selected),
+                                subtitle = stringResource(R.string.security_no_pdf_subtitle)
+                            )
+                        }
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -228,6 +239,17 @@ fun SecurityScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
+                        item {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "SECURITY / PRIVATE",
+                                title = "Put a lock\non your PDF.",
+                                description = "Protect your document with a password you control.",
+                                leadingIcon = Icons.Default.Lock,
+                                secondaryIcon = Icons.Default.Security
+                            )
+                        }
+
                         // Selected file info
                         item {
                             FileItemCard(

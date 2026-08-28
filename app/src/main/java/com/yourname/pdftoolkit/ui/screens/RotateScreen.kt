@@ -9,7 +9,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import com.yourname.pdftoolkit.ui.components.PdfThumbnailGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -281,6 +283,7 @@ fun RotateScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp)
                     ) {
                         PdfToolHeroCard(
@@ -411,7 +414,7 @@ fun RotateScreen(
                                     }
                                 },
                                 columns = 3,
-                                modifier = Modifier.fillMaxWidth().weight(1f)
+                                modifier = Modifier.fillMaxWidth().height(360.dp)
                             )
                         } else {
                             // "All Pages" preview block
@@ -426,7 +429,7 @@ fun RotateScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .weight(1f),
+                                    .height(280.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 com.yourname.pdftoolkit.ui.components.PdfThumbnailCard(

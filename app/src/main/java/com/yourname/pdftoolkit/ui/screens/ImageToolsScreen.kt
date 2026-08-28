@@ -296,15 +296,6 @@ fun ImageToolsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            PdfToolHeroCard(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                kicker = "IMAGE LAB / ON DEVICE",
-                title = "Make every\npixel work harder.",
-                description = "Resize, compress, convert, or clean your images in one focused flow.",
-                leadingIcon = Icons.Default.Photo,
-                secondaryIcon = Icons.Default.AutoAwesome
-            )
-
             // Content area
             Box(
                 modifier = Modifier
@@ -320,6 +311,17 @@ fun ImageToolsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
+                        item {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "IMAGE LAB / ON DEVICE",
+                                title = "Make every\npixel work harder.",
+                                description = "Resize, compress, convert, or clean your images in one focused flow.",
+                                leadingIcon = Icons.Default.Photo,
+                                secondaryIcon = Icons.Default.AutoAwesome
+                            )
+                        }
+
                         // Operation selection - show first before images
                         item {
                             Text(
@@ -449,6 +451,17 @@ fun ImageToolsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp)
                     ) {
+                        item {
+                            PdfToolHeroCard(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                kicker = "IMAGE LAB / ON DEVICE",
+                                title = "Make every\npixel work harder.",
+                                description = "Resize, compress, convert, or clean your images in one focused flow.",
+                                leadingIcon = Icons.Default.Photo,
+                                secondaryIcon = Icons.Default.AutoAwesome
+                            )
+                        }
+
                         // Selected images count
                         item {
                             Card(

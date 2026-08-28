@@ -16,11 +16,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1371,23 +1366,6 @@ private fun PdfPageWithAnnotations(
         }
     }
 
-    // Shimmer animation for loading state
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    )
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1483,17 +1461,12 @@ private fun PdfPageWithAnnotations(
                     }
                 }
                 else -> {
-                    // Loading shimmer skeleton
-                    val brush = Brush.linearGradient(
-                        colors = shimmerColors,
-                        start = Offset(translateAnim - 200f, 0f),
-                        end = Offset(translateAnim, 0f)
-                    )
+                    // Static loading placeholder avoids an animation per visible page while scrolling.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f / 1.414f)
-                            .background(brush)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier
