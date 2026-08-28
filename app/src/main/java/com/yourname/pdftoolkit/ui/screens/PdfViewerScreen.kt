@@ -107,6 +107,7 @@ fun PdfViewerScreen(
     val selectedAnnotationTool by viewModel.selectedAnnotationTool.collectAsState()
     val selectedColor by viewModel.selectedColor.collectAsState()
     val annotations by viewModel.annotations.collectAsState()
+    val pageStates by viewModel.pageStates.collectAsState()
 
     // Stroke width configurations
     val highlighterWidth by viewModel.highlighterWidth.collectAsState()
@@ -632,7 +633,7 @@ fun PdfViewerScreen(
                         totalPages = totalPages,
                         currentPage = currentPage,
                         loadPage = { viewModel.loadPage(it) },
-                        getPageState = { viewModel.getPageState(it) },
+                        getPageState = { pageStates[it] ?: PdfViewerViewModel.PageRenderState.Idle },
                         onRetryPage = { viewModel.retryPage(it) },
                         onReleasePage = { viewModel.releasePage(it) },
                         scale = scale,
@@ -1461,20 +1462,14 @@ private fun PdfPageWithAnnotations(
                     }
                 }
                 else -> {
-                    // Static loading placeholder avoids an animation per visible page while scrolling.
+                    // Keep page loading static. A spinner per visible page adds
+                    // animation work while the user is scrolling.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f / 1.414f)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .align(Alignment.Center),
-                            strokeWidth = 2.dp
-                        )
-                    }
+                    )
                 }
             }
 

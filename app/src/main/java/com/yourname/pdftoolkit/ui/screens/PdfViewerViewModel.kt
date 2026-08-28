@@ -179,10 +179,11 @@ open class PdfViewerViewModel : ViewModel() {
     sealed class PageRenderState {
         object Idle : PageRenderState()
         object Loading : PageRenderState()
-        data class Loaded(val bitmap: Bitmap) : PageRenderState()
+        object Loaded : PageRenderState()
         data class Error(val pageIndex: Int, val message: String) : PageRenderState()
     }
     private val _pageStates = MutableStateFlow<Map<Int, PageRenderState>>(emptyMap())
+    open val pageStates: StateFlow<Map<Int, PageRenderState>> = _pageStates.asStateFlow()
 
     // Current page tracking for memory management
     private var _currentPage: Int = 0
@@ -192,9 +193,18 @@ open class PdfViewerViewModel : ViewModel() {
     private val uiBitmapRefs = mutableMapOf<Int, Bitmap>()
 
     private fun safeRecycle(bitmap: Bitmap?) {
-        bitmap ?: return
-        if (!bitmap.isRecycled && !activeBitmaps.contains(bitmap)) {
-            bitmap.recycle()
+        // Compose may still be drawing a page after it leaves the LazyColumn.
+        // Never recycle here; cache eviction plus GC is safer than racing the
+        // renderer and producing black pages or recycled-bitmap crashes.
+    }
+
+    private fun updatePageState(pageIndex: Int, state: PageRenderState) {
+        _pageStates.update { current ->
+            if (state === PageRenderState.Idle) {
+                current - pageIndex
+            } else {
+                current + (pageIndex to state)
+            }
         }
     }
 
@@ -242,9 +252,10 @@ open class PdfViewerViewModel : ViewModel() {
                 val runtime = Runtime.getRuntime()
                 val availableMemMb = (runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory()) / 1048576
                 if (availableMemMb < 50) {
-                    Log.w("PdfViewerVM", "Low memory before opening PDF: ${availableMemMb}MB, triggering GC")
-                    System.gc()
-                    delay(100)
+                    Log.w("PdfViewerVM", "Low memory before opening PDF: ${availableMemMb}MB, clearing page cache")
+                    // A forced GC here pauses the UI during startup. Evict
+                    // references and let the runtime reclaim them normally.
+                    bitmapCache.evictAll()
                 }
 
                 withContext(Dispatchers.IO) {
@@ -325,6 +336,7 @@ open class PdfViewerViewModel : ViewModel() {
     fun retryPage(pageIndex: Int) {
         unregisterBitmap(pageIndex)
         bitmapCache.remove(pageIndex)
+        updatePageState(pageIndex, PageRenderState.Idle)
     }
 
     fun getPageState(pageIndex: Int): PageRenderState {
@@ -406,13 +418,15 @@ open class PdfViewerViewModel : ViewModel() {
         _annotations.value = emptyList()
     }
 
-    // Bitmap cache dynamically sized to 1/8th of the device's maximum available heap memory
+    // Keep only a small nearby-page cache. Large PDF bitmaps are expensive and
+    // an oversized cache makes scrolling progressively slower on low-memory
+    // devices.
     private val cacheSize = try {
         val maxMemory = Runtime.getRuntime().maxMemory()
-        val optimalSize = (maxMemory / 8).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        optimalSize.coerceAtLeast(30 * 1024 * 1024) // Fallback to 30 MB minimum
+        val optimalSize = (maxMemory / 12).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        optimalSize.coerceIn(8 * 1024 * 1024, 24 * 1024 * 1024)
     } catch (e: Exception) {
-        30 * 1024 * 1024
+        16 * 1024 * 1024
     }
     private val bitmapCache = object : LruCache<Int, Bitmap>(cacheSize) {
         override fun sizeOf(key: Int, bitmap: Bitmap): Int {
@@ -445,11 +459,13 @@ open class PdfViewerViewModel : ViewModel() {
     suspend fun loadPage(pageIndex: Int): Bitmap? {
         val totalPages = (_uiState.value as? PdfViewerUiState.Loaded)?.totalPages ?: return null
         if (pageIndex < 0 || pageIndex >= totalPages) return null
+        updatePageState(pageIndex, PageRenderState.Loading)
 
         // Check cache first
         bitmapCache.get(pageIndex)?.let { cached ->
             if (!cached.isRecycled) {
                 registerActiveBitmap(pageIndex, cached)
+                updatePageState(pageIndex, PageRenderState.Loaded)
                 return if (!cached.isRecycled) cached else null
             }
             bitmapCache.remove(pageIndex)
@@ -488,7 +504,6 @@ open class PdfViewerViewModel : ViewModel() {
                         } catch (oom: OutOfMemoryError) {
                             Log.e("PdfViewerVM", "OOM rendering page $pageIndex, clearing cache and retrying at lower scale", oom)
                             bitmapCache.evictAll()
-                            System.gc()
                             try {
                                 val page = androidRenderer.openPage(pageIndex)
                                 val renderScale = calculateCappedRenderScale(pageIndex) * 0.5f
@@ -536,14 +551,23 @@ open class PdfViewerViewModel : ViewModel() {
                 if (bitmap?.isRecycled == true) {
                     bitmapCache.remove(pageIndex)
                 }
+                updatePageState(
+                    pageIndex,
+                    PageRenderState.Error(pageIndex, "Could not render page")
+                )
                 return null
             }
             registerActiveBitmap(pageIndex, bitmap)
+            updatePageState(pageIndex, PageRenderState.Loaded)
             if (!bitmap.isRecycled) bitmap else null
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e("PdfViewerVM", "loadPage error page $pageIndex: ${e.message}")
+            updatePageState(
+                pageIndex,
+                PageRenderState.Error(pageIndex, e.message ?: "Could not render page")
+            )
             null
         }
     }

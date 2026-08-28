@@ -9,6 +9,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yourname.pdftoolkit.R
+import androidx.compose.foundation.layout.WindowInsets
 
 /**
  * A standard top bar for tool screens with a title and back button.
@@ -22,6 +23,7 @@ fun ToolTopBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
+        windowInsets = WindowInsets(0, 0, 0, 0),
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
@@ -50,11 +52,6 @@ fun ToolTopBar(
                 )
             }
         },
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-            titleContentColor = MaterialTheme.colorScheme.onBackground
-        )
+        actions = actions
     )
 }

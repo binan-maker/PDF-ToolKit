@@ -28,6 +28,11 @@ class PdfToolkitApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Apply the last known mode synchronously. The DataStore value is still
+        // the source of truth, but waiting for it here causes a light/dark
+        // window flash and an avoidable Activity recreation on cold start.
+        ThemeManager.getStartupThemeMode(this)?.let(ThemeManager::applyTheme)
+
         // Initialize PdfBox-Android without delaying the first Activity frame.
         applicationScope.launch {
             PDFBoxResourceLoader.init(applicationContext)
@@ -50,6 +55,7 @@ class PdfToolkitApplication : Application() {
             }
 
             withContext(Dispatchers.Main.immediate) {
+                ThemeManager.cacheLoadedThemeMode(applicationContext, themeMode)
                 if (AppCompatDelegate.getDefaultNightMode() != themeMode.value) {
                     ThemeManager.applyTheme(themeMode)
                 }

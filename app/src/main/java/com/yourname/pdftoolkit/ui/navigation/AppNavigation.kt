@@ -2,14 +2,6 @@ package com.yourname.pdftoolkit.ui.navigation
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -323,21 +315,22 @@ fun AppNavigation(
         else -> startDestination
     }
 
-    // Handle dynamic URI changes (e.g., from onNewIntent)
-    LaunchedEffect(initialPdfUri) {
-        if (initialPdfUri != null) {
-            // Navigate to PDF viewer when URI changes
-            // Use pdf_viewer_direct route which already has access to initialPdfUri/initialPdfName
-            safeNavigate(navController, "pdf_viewer_direct") {
-                // Pop up to Tools to avoid building up a large back stack
-                popUpTo(Screen.Tools.route) { inclusive = false }
-            }
-        }
-    }
-
     // Track current route
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // The direct viewer is already the start destination when a PDF arrives
+    // through an external intent. Navigating again here created two viewer
+    // entries and made opening feel stuck. Only navigate when another screen
+    // receives a genuinely new intent.
+    LaunchedEffect(initialPdfUri) {
+        if (initialPdfUri != null && currentRoute != "pdf_viewer_direct") {
+            safeNavigate(navController, "pdf_viewer_direct") {
+                popUpTo(Screen.Tools.route) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
+    }
 
     // Bottom bar is shown only on main tabs
     val showBottomBar = currentRoute in listOf(
@@ -445,11 +438,7 @@ fun AppNavigation(
                 }
             },
             bottomBar = {
-                AnimatedVisibility(
-                    visible = showBottomBar,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-                ) {
+                if (showBottomBar) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -479,35 +468,7 @@ fun AppNavigation(
                 startDestination = actualStartDestination,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                enterTransition = {
-                    fadeIn(animationSpec = tween(180)) +
-                            slideInHorizontally(
-                                initialOffsetX = { fullWidth -> fullWidth / 10 },
-                                animationSpec = tween(180)
-                            )
-                },
-                exitTransition = {
-                    fadeOut(animationSpec = tween(120)) +
-                            slideOutHorizontally(
-                                targetOffsetX = { fullWidth -> -fullWidth / 14 },
-                                animationSpec = tween(120)
-                            )
-                },
-                popEnterTransition = {
-                    fadeIn(animationSpec = tween(180)) +
-                            slideInHorizontally(
-                                initialOffsetX = { fullWidth -> -fullWidth / 10 },
-                                animationSpec = tween(180)
-                            )
-                },
-                popExitTransition = {
-                    fadeOut(animationSpec = tween(120)) +
-                            slideOutHorizontally(
-                                targetOffsetX = { fullWidth -> fullWidth / 14 },
-                                animationSpec = tween(120)
-                            )
-                }
+                    .padding(paddingValues)
             ) {
                 // Main Tabs
                 composable(Screen.Tools.route) {
