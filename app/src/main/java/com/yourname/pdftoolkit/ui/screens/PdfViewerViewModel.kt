@@ -2,6 +2,7 @@ package com.yourname.pdftoolkit.ui.screens
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
 import android.graphics.BlendMode
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -9,9 +10,6 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.net.Uri
-import android.os.ParcelFileDescriptor
-import android.graphics.pdf.PdfRenderer as AndroidPdfRenderer
-import android.os.Build
 import android.util.Log
 import android.util.LruCache
 import androidx.compose.ui.geometry.Offset
@@ -165,8 +163,6 @@ open class PdfViewerViewModel : ViewModel() {
     // Document management
     private var document: PDDocument? = null
     private var pdfRenderer: PDFRenderer? = null
-    private var androidPdfRenderer: AndroidPdfRenderer? = null
-    private var androidPdfPfd: ParcelFileDescriptor? = null
     private val documentMutex = Mutex()
     private var tempFile: File? = null
 
@@ -301,18 +297,16 @@ open class PdfViewerViewModel : ViewModel() {
                         } ?: throw Exception("PDF too large to open - timed out after 30 seconds")
 
                         val pageCount = doc.numberOfPages
+                        if (pageCount <= 0) {
+                            doc.close()
+                            throw IllegalArgumentException("PDF does not contain any pages")
+                        }
                         Log.d("PdfViewerVM", "Loaded PDF with $pageCount pages")
 
                         documentMutex.withLock {
                             document = doc
                             pdfRenderer = PDFRenderer(doc)
                             tempFile = createdTempFile // Transfer ownership to instance
-                            try {
-                                androidPdfPfd = ParcelFileDescriptor.open(fileToLoad, ParcelFileDescriptor.MODE_READ_ONLY)
-                                androidPdfRenderer = AndroidPdfRenderer(androidPdfPfd!!)
-                            } catch (e: Exception) {
-                                Log.e("PdfViewerVM", "Error initializing AndroidPdfRenderer", e)
-                            }
                         }
 
                         _currentPage = savedPage.coerceIn(0, pageCount - 1)
@@ -323,6 +317,12 @@ open class PdfViewerViewModel : ViewModel() {
                         throw e // Rethrow to outer catch
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (oom: OutOfMemoryError) {
+                Log.e("PdfViewerVM", "Not enough memory to open PDF", oom)
+                bitmapCache.evictAll()
+                _uiState.value = PdfViewerUiState.Error("Not enough memory to open this PDF")
             } catch (e: Exception) {
                 Log.e("PdfViewerVM", "Error loading PDF", e)
                 _uiState.value = PdfViewerUiState.Error(e.message ?: "Failed to load PDF")
@@ -498,73 +498,24 @@ open class PdfViewerViewModel : ViewModel() {
                         bitmapCache.remove(pageIndex)
                     }
 
-                    val androidRenderer = androidPdfRenderer
-                    if (androidRenderer != null) {
-                        try {
-                            val page = androidRenderer.openPage(pageIndex)
-                            try {
-                                val renderScale = calculateCappedRenderScale(pageIndex)
-                                val width = (page.width * renderScale).toInt().coerceAtLeast(1)
-                                val height = (page.height * renderScale).toInt().coerceAtLeast(1)
-                                val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                                bm.eraseColor(android.graphics.Color.WHITE)
-                                page.render(bm, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-
-                                if (!bm.isRecycled) {
-                                    bitmapCache.put(pageIndex, bm)
-                                    bm
-                                } else {
-                                    null
-                                }
-                            } finally {
-                                page.close()
+                    val renderer = pdfRenderer ?: return@withLock null
+                    try {
+                        val renderScale = calculateCappedRenderScale(pageIndex)
+                        var bmResult: Bitmap? = null
+                        renderer.renderImage(pageIndex, renderScale)?.also { bm ->
+                            if (!bm.isRecycled) {
+                                bitmapCache.put(pageIndex, bm)
+                                bmResult = bm
                             }
-                        } catch (oom: OutOfMemoryError) {
-                            Log.e("PdfViewerVM", "OOM rendering page $pageIndex, clearing cache and retrying at lower scale", oom)
-                            bitmapCache.evictAll()
-                            try {
-                                val page = androidRenderer.openPage(pageIndex)
-                                try {
-                                    val renderScale = calculateCappedRenderScale(pageIndex) * 0.5f
-                                    val width = (page.width * renderScale).toInt().coerceAtLeast(1)
-                                    val height = (page.height * renderScale).toInt().coerceAtLeast(1)
-                                    val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                                    bm.eraseColor(android.graphics.Color.WHITE)
-                                    page.render(bm, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-
-                                    if (!bm.isRecycled) {
-                                        bitmapCache.put(pageIndex, bm)
-                                        bm
-                                    } else {
-                                        null
-                                    }
-                                } finally {
-                                    page.close()
-                                }
-                            } catch (t: Throwable) {
-                                Log.e("PdfViewerVM", "Failed to render page $pageIndex even at lower scale", t)
-                                null
-                            }
-                        } catch (e: Exception) {
-                            Log.e("PdfViewerVM", "Render failed page $pageIndex: ${e.message}")
-                            null
                         }
-                    } else {
-                        val renderer = pdfRenderer ?: return@withLock null
-                        try {
-                            val renderScale = calculateCappedRenderScale(pageIndex)
-                            var bmResult: Bitmap? = null
-                            renderer.renderImage(pageIndex, renderScale)?.also { bm ->
-                                if (!bm.isRecycled) {
-                                    bitmapCache.put(pageIndex, bm)
-                                    bmResult = bm
-                                }
-                            }
-                            bmResult
-                        } catch (e: Exception) {
-                            Log.e("PdfViewerVM", "PDFBox Render failed page $pageIndex: ${e.message}")
-                            null
-                        }
+                        bmResult
+                    } catch (oom: OutOfMemoryError) {
+                        Log.e("PdfViewerVM", "OOM rendering page $pageIndex; clearing page cache", oom)
+                        bitmapCache.evictAll()
+                        null
+                    } catch (e: Exception) {
+                        Log.e("PdfViewerVM", "PDFBox Render failed page $pageIndex: ${e.message}", e)
+                        null
                     }
                 }
             }
@@ -894,23 +845,14 @@ open class PdfViewerViewModel : ViewModel() {
                             // Render and flatten
 
                             // Render fresh and ensure mutable copy
-                            val androidRenderer = androidPdfRenderer
-                            var rendered: Bitmap? = null
-                            if (androidRenderer != null) {
-                                try {
-                                    val page = androidRenderer.openPage(pageIndex)
-                                    val width = (page.width * RENDER_SCALE).toInt().coerceAtLeast(1)
-                                    val height = (page.height * RENDER_SCALE).toInt().coerceAtLeast(1)
-                                    val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                                    bm.eraseColor(android.graphics.Color.WHITE)
-                                    page.render(bm, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                                    page.close()
-                                    rendered = bm
-                                } catch (e: Exception) {
-                                    rendered = pdfRenderer?.renderImage(pageIndex, RENDER_SCALE)
-                                }
-                            } else {
-                                rendered = pdfRenderer?.renderImage(pageIndex, RENDER_SCALE)
+                            val rendered = try {
+                                pdfRenderer?.renderImage(
+                                    pageIndex,
+                                    calculateCappedRenderScale(pageIndex)
+                                )
+                            } catch (e: Exception) {
+                                Log.e("PdfViewerVM", "Could not render page for annotations", e)
+                                null
                             }
 
                             val workingBitmap = rendered?.let { bitmap ->
@@ -1042,14 +984,6 @@ open class PdfViewerViewModel : ViewModel() {
             } finally {
                 document = null
                 pdfRenderer = null
-                try {
-                    androidPdfRenderer?.close()
-                    androidPdfRenderer = null
-                } catch (e: Exception) {}
-                try {
-                    androidPdfPfd?.close()
-                    androidPdfPfd = null
-                } catch (e: Exception) {}
                 extractedTextCache.clear()
                 // When navigating away from a PDF, trim cache to 0 immediately
                 bitmapCache.trimToSize(0)
