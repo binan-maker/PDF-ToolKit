@@ -407,38 +407,19 @@ fun PdfViewerScreen(
                         modifier = Modifier.statusBarsPadding(),
                         windowInsets = WindowInsets(0, 0, 0, 0),
                         title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Surface(
-                                    modifier = Modifier.size(34.dp),
-                                    shape = RoundedCornerShape(11.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.PictureAsPdf,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(19.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                }
-                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Text(
+                                    text = pdfName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1
+                                )
+                                if (totalPages > 0) {
                                     Text(
-                                        text = pdfName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1
+                                        text = "$totalPages pages",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    if (totalPages > 0) {
-                                        Text(
-                                            text = "$totalPages pages  •  ${scale.times(100).roundToInt()}%",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
                                 }
                             }
                         },
@@ -457,18 +438,6 @@ fun PdfViewerScreen(
                             }
 
                             val isEditMode = toolState is PdfTool.Edit
-
-                            IconButton(onClick = { showThemeMenu = true }) {
-                                Icon(
-                                    imageVector = when (currentTheme) {
-                                        ThemeMode.DARK -> Icons.Default.DarkMode
-                                        ThemeMode.LIGHT -> Icons.Default.LightMode
-                                        ThemeMode.SYSTEM -> Icons.Default.Brightness6
-                                    },
-                                    contentDescription = stringResource(R.string.pdf_viewer_appearance),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
 
                             // Save annotations button (only in edit mode with annotations)
                             if (isEditMode && annotations.isNotEmpty()) {
@@ -492,24 +461,6 @@ fun PdfViewerScreen(
                                         )
                                     }
                                 }
-                            }
-
-                            // Edit/Annotate toggle
-                            IconButton(
-                                onClick = {
-                                    if (isEditMode) {
-                                        viewModel.setTool(PdfTool.None)
-                                    } else {
-                                        viewModel.setTool(PdfTool.Edit)
-                                    }
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
-                            ) {
-                                Icon(
-                                    if (isEditMode) Icons.Default.Check else Icons.Default.Edit,
-                                    contentDescription = if (isEditMode) stringResource(R.string.cd_done_editing) else stringResource(R.string.cd_edit),
-                                    tint = if (isEditMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                                )
                             }
 
                             // More options menu
@@ -540,14 +491,6 @@ fun PdfViewerScreen(
                                                 sharePdf(context, pdfUri)
                                             }
                                         )
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.pdf_open_with)) },
-                                            leadingIcon = { Icon(Icons.Default.OpenInNew, null) },
-                                            onClick = {
-                                                showMenu = false
-                                                openWithExternalApp(context, pdfUri)
-                                            }
-                                        )
                                         Divider()
                                     }
                                     if (totalPages > 1) {
@@ -560,14 +503,6 @@ fun PdfViewerScreen(
                                             }
                                         )
                                     }
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.pdf_reset_zoom)) },
-                                        leadingIcon = { Icon(Icons.Default.FitScreen, null) },
-                                        onClick = {
-                                            showMenu = false
-                                            updateZoom(1f)
-                                        }
-                                    )
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.pdf_fit_to_width)) },
                                         leadingIcon = { Icon(Icons.Default.ZoomOutMap, null) },
@@ -637,11 +572,16 @@ fun PdfViewerScreen(
                     ViewerNavigationDock(
                         currentPage = currentPage,
                         totalPages = totalPages,
-                        scale = scale,
                         onPageClick = { if (totalPages > 0) showPageSelector = true },
-                        onZoomOut = { updateZoom(scale - 0.25f) },
-                        onZoomIn = { updateZoom(scale + 0.25f) },
-                        onFit = { updateZoom(1f) }
+                        isEditMode = isEditMode,
+                        onEditClick = {
+                            if (isEditMode) {
+                                viewModel.setTool(PdfTool.None)
+                            } else {
+                                viewModel.setTool(PdfTool.Edit)
+                            }
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
                     )
                 }
 
@@ -1097,91 +1037,62 @@ private fun ToolButton(
 private fun ViewerNavigationDock(
     currentPage: Int,
     totalPages: Int,
-    scale: Float,
     onPageClick: () -> Unit,
-    onZoomOut: () -> Unit,
-    onZoomIn: () -> Unit,
-    onFit: () -> Unit
+    isEditMode: Boolean,
+    onEditClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        tonalElevation = 5.dp,
-        shadowElevation = 12.dp,
+        tonalElevation = 4.dp,
+        shadowElevation = 10.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .height(56.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
-            FilledTonalButton(
-                onClick = onPageClick,
-                enabled = totalPages > 0,
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(enabled = totalPages > 0, onClick = onPageClick),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Description,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(7.dp))
                 Text(
                     text = if (totalPages > 0) "$currentPage / $totalPages" else "—",
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(
-                onClick = onZoomOut,
-                enabled = scale > 1f
+            FilledTonalIconButton(
+                onClick = onEditClick,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(44.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    Icons.Default.Remove,
-                    contentDescription = stringResource(R.string.pdf_zoom_out)
+                    imageVector = if (isEditMode) Icons.Default.Check else Icons.Default.Edit,
+                    contentDescription = if (isEditMode) {
+                        stringResource(R.string.cd_done_editing)
+                    } else {
+                        stringResource(R.string.cd_edit)
+                    },
+                    tint = if (isEditMode) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
                 )
             }
-            Slider(
-                value = scale,
-                onValueChange = { /* The discrete buttons keep the zoom predictable. */ },
-                valueRange = 1f..5f,
-                steps = 15,
-                enabled = false,
-                modifier = Modifier.weight(1f),
-                colors = SliderDefaults.colors(
-                    disabledThumbColor = MaterialTheme.colorScheme.primary,
-                    disabledActiveTrackColor = MaterialTheme.colorScheme.primary,
-                    disabledInactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                )
-            )
-            IconButton(
-                onClick = onZoomIn,
-                enabled = scale < 5f
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = stringResource(R.string.pdf_zoom_in)
-                )
-            }
-            IconButton(onClick = onFit) {
-                Icon(
-                    Icons.Default.FitScreen,
-                    contentDescription = stringResource(R.string.pdf_fit_to_width)
-                )
-            }
-            Text(
-                text = "${scale.times(100).roundToInt()}%",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.widthIn(min = 42.dp)
-            )
         }
     }
 }
@@ -2325,34 +2236,6 @@ private fun sharePdf(context: Context, pdfUri: Uri) {
         context.startActivity(chooser)
     } catch (e: Exception) {
         android.util.Log.e("PdfViewerScreen", "Share failed", e)
-        Toast.makeText(context, "${context.getString(R.string.pdf_unable_to_open)}: ${e.message}", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun openWithExternalApp(context: Context, pdfUri: Uri) {
-    try {
-        // Convert file:// URI to FileProvider content:// URI if needed
-        val viewUri = if (pdfUri.scheme == "file") {
-            androidx.core.content.FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.provider",
-                java.io.File(pdfUri.path!!)
-            )
-        } else {
-            pdfUri // already a content:// URI, use directly
-        }
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(viewUri, "application/pdf")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        val chooser = Intent.createChooser(intent, context.getString(R.string.pdf_open_with))
-        context.startActivity(chooser)
-    } catch (e: android.content.ActivityNotFoundException) {
-        Toast.makeText(context, context.getString(R.string.pdf_no_app_found), Toast.LENGTH_SHORT).show()
-    } catch (e: Exception) {
-        android.util.Log.e("PdfViewerScreen", "Open with failed", e)
         Toast.makeText(context, "${context.getString(R.string.pdf_unable_to_open)}: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }

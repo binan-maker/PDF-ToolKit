@@ -47,6 +47,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
+import kotlin.math.sqrt
 
 data class PageTextData(val text: String, val positions: List<TextPosition>)
 
@@ -104,7 +105,9 @@ open class PdfViewerViewModel : ViewModel() {
 
     companion object {
         const val RENDER_SCALE = 1.5f  // ~108 DPI for text-based PDFs
-        private const val MAX_RENDER_DIMENSION_PX = 2048
+        // Keep page bitmaps comfortably below common mobile GPU/heap limits.
+        private const val MAX_RENDER_DIMENSION_PX = 1536
+        private const val MAX_RENDER_PIXELS = 4_000_000L
     }
 
     private val _uiState = MutableStateFlow<PdfViewerUiState>(PdfViewerUiState.Idle)
@@ -439,9 +442,9 @@ open class PdfViewerViewModel : ViewModel() {
     private val cacheSize = try {
         val maxMemory = Runtime.getRuntime().maxMemory()
         val optimalSize = (maxMemory / 12).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        optimalSize.coerceIn(8 * 1024 * 1024, 24 * 1024 * 1024)
+        optimalSize.coerceIn(4 * 1024 * 1024, 12 * 1024 * 1024)
     } catch (e: Exception) {
-        16 * 1024 * 1024
+        8 * 1024 * 1024
     }
     private val bitmapCache = object : LruCache<Int, Bitmap>(cacheSize) {
         override fun sizeOf(key: Int, bitmap: Bitmap): Int {
@@ -463,12 +466,13 @@ open class PdfViewerViewModel : ViewModel() {
         val targetWidth = box.width * RENDER_SCALE
         val targetHeight = box.height * RENDER_SCALE
         val largestDimension = maxOf(targetWidth, targetHeight)
+        val targetPixels = (targetWidth * targetHeight).toDouble()
 
-        return if (largestDimension > MAX_RENDER_DIMENSION_PX) {
-            RENDER_SCALE * (MAX_RENDER_DIMENSION_PX / largestDimension)
-        } else {
-            RENDER_SCALE
-        }
+        if (largestDimension <= 0f || targetPixels <= 0.0) return RENDER_SCALE
+
+        val dimensionScale = MAX_RENDER_DIMENSION_PX / largestDimension
+        val pixelScale = sqrt(MAX_RENDER_PIXELS.toDouble() / targetPixels).toFloat()
+        return RENDER_SCALE * minOf(1f, dimensionScale, pixelScale)
     }
 
     suspend fun loadPage(pageIndex: Int): Bitmap? {
@@ -534,6 +538,14 @@ open class PdfViewerViewModel : ViewModel() {
             if (!bitmap.isRecycled) bitmap else null
         } catch (e: CancellationException) {
             throw e
+        } catch (oom: OutOfMemoryError) {
+            Log.e("PdfViewerVM", "OOM loading page $pageIndex; clearing page cache", oom)
+            bitmapCache.evictAll()
+            updatePageState(
+                pageIndex,
+                PageRenderState.Error(pageIndex, "Not enough memory to render this page")
+            )
+            null
         } catch (e: Exception) {
             Log.e("PdfViewerVM", "loadPage error page $pageIndex: ${e.message}")
             updatePageState(
