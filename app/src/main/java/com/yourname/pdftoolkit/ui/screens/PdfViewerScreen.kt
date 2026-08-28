@@ -32,6 +32,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -41,6 +42,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,11 +75,14 @@ import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yourname.pdftoolkit.data.SafUriManager
 import com.yourname.pdftoolkit.util.PrintUtils
+import com.yourname.pdftoolkit.util.ThemeManager
+import com.yourname.pdftoolkit.util.ThemeMode
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.geometry.isFinite
 import com.tom_roush.pdfbox.text.TextPosition
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
@@ -107,6 +113,7 @@ fun PdfViewerScreen(
     val selectedAnnotationTool by viewModel.selectedAnnotationTool.collectAsState()
     val selectedColor by viewModel.selectedColor.collectAsState()
     val annotations by viewModel.annotations.collectAsState()
+    val redoAnnotations by viewModel.redoAnnotations.collectAsState()
     val pageStates by viewModel.pageStates.collectAsState()
 
     // Stroke width configurations
@@ -153,6 +160,8 @@ fun PdfViewerScreen(
     var showControls by remember { mutableStateOf(true) }
     var showPageSelector by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    var showThemeMenu by remember { mutableStateOf(false) }
+    val currentTheme by ThemeManager.getThemeMode(context).collectAsState(initial = ThemeMode.SYSTEM)
 
     // Ensure controls are visible when tool changes
     LaunchedEffect(toolState) {
@@ -185,6 +194,35 @@ fun PdfViewerScreen(
     // Track visible page based on scroll position using derivedStateOf to prevent excessive recompositions
     val currentPage by remember(listState) {
         androidx.compose.runtime.derivedStateOf { listState.firstVisibleItemIndex + 1 }
+    }
+
+    // Zoom around the user's fingers instead of jumping to the page center.
+    // The page is rendered at a stable scale; only this viewport transform changes.
+    fun updateZoom(targetScale: Float, focalPoint: Offset = Offset(
+        viewportSize.width / 2f,
+        viewportSize.height / 2f
+    )) {
+        val newScale = targetScale.coerceIn(1f, 5f)
+        if (newScale <= 1f || viewportSize == IntSize.Zero) {
+            scale = 1f
+            offsetX = 0f
+            offsetY = 0f
+            return
+        }
+
+        val ratio = newScale / scale.coerceAtLeast(0.01f)
+        val centerX = viewportSize.width / 2f
+        val nextX = (focalPoint.x - centerX) * (1f - ratio) + offsetX * ratio
+        val nextY = focalPoint.y * (1f - ratio) + offsetY * ratio
+        val maxX = ((viewportSize.width * (newScale - 1f)) / 2f).coerceAtLeast(0f)
+
+        scale = newScale
+        offsetX = nextX.coerceIn(-maxX, maxX)
+        // A zoomed page can be panned vertically, but never beyond its edges.
+        offsetY = nextY.coerceIn(
+            -((viewportSize.height * (newScale - 1f)).coerceAtLeast(0f)),
+            0f
+        )
     }
 
     // Scroll-driven toolbar visibility
@@ -360,15 +398,24 @@ fun PdfViewerScreen(
                         )
                     )
                 } else {
-                    // Normal top bar
+                    // Focused document command bar
                     TopAppBar(
                         title = {
-                            Text(
-                                text = pdfName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
+                            Column {
+                                Text(
+                                    text = pdfName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1
+                                )
+                                if (totalPages > 0) {
+                                    Text(
+                                        text = "$totalPages pages  •  ${scale.times(100).roundToInt()}%",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         },
                         navigationIcon = {
                             IconButton(onClick = onNavigateBack) {
@@ -385,6 +432,18 @@ fun PdfViewerScreen(
                             }
 
                             val isEditMode = toolState is PdfTool.Edit
+
+                            IconButton(onClick = { showThemeMenu = true }) {
+                                Icon(
+                                    imageVector = when (currentTheme) {
+                                        ThemeMode.DARK -> Icons.Default.DarkMode
+                                        ThemeMode.LIGHT -> Icons.Default.LightMode
+                                        ThemeMode.SYSTEM -> Icons.Default.Brightness6
+                                    },
+                                    contentDescription = stringResource(R.string.pdf_viewer_appearance),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
 
                             // Save annotations button (only in edit mode with annotations)
                             if (isEditMode && annotations.isNotEmpty()) {
@@ -438,6 +497,15 @@ fun PdfViewerScreen(
                                     expanded = showMenu,
                                     onDismissRequest = { showMenu = false }
                                 ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.pdf_viewer_appearance)) },
+                                        leadingIcon = { Icon(Icons.Default.Brightness6, null) },
+                                        onClick = {
+                                            showMenu = false
+                                            showThemeMenu = true
+                                        }
+                                    )
+                                    Divider()
                                     if (pdfUri != null) {
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.pdf_share)) },
@@ -472,9 +540,15 @@ fun PdfViewerScreen(
                                         leadingIcon = { Icon(Icons.Default.FitScreen, null) },
                                         onClick = {
                                             showMenu = false
-                                            scale = 1f
-                                            offsetX = 0f
-                                            offsetY = 0f
+                                            updateZoom(1f)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.pdf_fit_to_width)) },
+                                        leadingIcon = { Icon(Icons.Default.ZoomOutMap, null) },
+                                        onClick = {
+                                            showMenu = false
+                                            updateZoom(1f)
                                         }
                                     )
                                     if (pdfUri != null) {
@@ -530,6 +604,22 @@ fun PdfViewerScreen(
             Column {
                 val isEditMode = toolState is PdfTool.Edit
 
+                AnimatedVisibility(
+                    visible = showControls,
+                    enter = fadeIn() + slideInVertically { it },
+                    exit = fadeOut() + slideOutVertically { it }
+                ) {
+                    ViewerNavigationDock(
+                        currentPage = currentPage,
+                        totalPages = totalPages,
+                        scale = scale,
+                        onPageClick = { if (totalPages > 0) showPageSelector = true },
+                        onZoomOut = { updateZoom(scale - 0.25f) },
+                        onZoomIn = { updateZoom(scale + 0.25f) },
+                        onFit = { updateZoom(1f) }
+                    )
+                }
+
                 // Brush size selection slider
                 AnimatedVisibility(
                     visible = isEditMode && showControls && showThicknessSlider && selectedAnnotationTool != AnnotationTool.NONE,
@@ -563,6 +653,8 @@ fun PdfViewerScreen(
                         onColorPickerClick = { showColorPicker = true },
                         onUndoClick = { viewModel.undoAnnotation() },
                         canUndo = annotations.isNotEmpty(),
+                        onRedoClick = { viewModel.redoAnnotation() },
+                        canRedo = redoAnnotations.isNotEmpty(),
                         onBrushSizeClick = { showThicknessSlider = !showThicknessSlider }
                     )
                 }
@@ -587,23 +679,10 @@ fun PdfViewerScreen(
                                 }
                             },
                             onDoubleTap = { tapOffset ->
-                                val newScale = if (scale >= 2f) 1f else 2.5f
-
-                                if (newScale > 1f) {
-                                    val centerX = viewportSize.width / 2f
-                                    val focusX = tapOffset.x - centerX
-                                    val newOffsetX = (-focusX * (newScale - 1f))
-                                        .coerceIn(
-                                            -((viewportSize.width * newScale - viewportSize.width) / 2f),
-                                            (viewportSize.width * newScale - viewportSize.width) / 2f
-                                        )
-                                    offsetX = newOffsetX
-                                    offsetY = 0f
-                                } else {
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                }
-                                scale = newScale
+                                updateZoom(
+                                    if (scale >= 2.25f) 1f else 2.5f,
+                                    tapOffset
+                                )
                             }
                         )
                     }
@@ -639,6 +718,7 @@ fun PdfViewerScreen(
                         scale = scale,
                         onScaleChange = { scale = it },
                         offsetX = offsetX,
+                        offsetY = offsetY,
                         onOffsetChange = { x, y ->
                             offsetX = x
                             offsetY = y
@@ -742,6 +822,17 @@ fun PdfViewerScreen(
         }
     }
 
+    if (showThemeMenu) {
+        ThemePickerDialog(
+            currentTheme = currentTheme,
+            onThemeSelected = { selected ->
+                showThemeMenu = false
+                scope.launch { ThemeManager.setThemeMode(context, selected) }
+            },
+            onDismiss = { showThemeMenu = false }
+        )
+    }
+
     // Clear Annotations Dialog
     if (showClearDialog) {
         AlertDialog(
@@ -817,6 +908,8 @@ private fun AnnotationToolbar(
     onColorPickerClick: () -> Unit,
     onUndoClick: () -> Unit,
     canUndo: Boolean,
+    onRedoClick: () -> Unit,
+    canRedo: Boolean,
     onBrushSizeClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
@@ -906,6 +999,16 @@ private fun AnnotationToolbar(
                     tint = if (canUndo) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.38f)
                 )
             }
+            IconButton(
+                onClick = onRedoClick,
+                enabled = canRedo
+            ) {
+                Icon(
+                    Icons.Default.Redo,
+                    contentDescription = stringResource(R.string.pdf_redo),
+                    tint = if (canRedo) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.38f)
+                )
+            }
         }
     }
 }
@@ -948,6 +1051,166 @@ private fun ToolButton(
             else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+@Composable
+private fun ViewerNavigationDock(
+    currentPage: Int,
+    totalPages: Int,
+    scale: Float,
+    onPageClick: () -> Unit,
+    onZoomOut: () -> Unit,
+    onZoomIn: () -> Unit,
+    onFit: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 6.dp,
+        shadowElevation = 10.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilledTonalButton(
+                onClick = onPageClick,
+                enabled = totalPages > 0,
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
+            ) {
+                Icon(
+                    Icons.Default.Description,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(7.dp))
+                Text(
+                    text = if (totalPages > 0) "$currentPage / $totalPages" else "—",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(
+                onClick = onZoomOut,
+                enabled = scale > 1f
+            ) {
+                Icon(
+                    Icons.Default.Remove,
+                    contentDescription = stringResource(R.string.pdf_zoom_out)
+                )
+            }
+            Slider(
+                value = scale,
+                onValueChange = { /* The discrete buttons keep the zoom predictable. */ },
+                valueRange = 1f..5f,
+                steps = 15,
+                enabled = false,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    disabledThumbColor = MaterialTheme.colorScheme.primary,
+                    disabledActiveTrackColor = MaterialTheme.colorScheme.primary,
+                    disabledInactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                )
+            )
+            IconButton(
+                onClick = onZoomIn,
+                enabled = scale < 5f
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(R.string.pdf_zoom_in)
+                )
+            }
+            IconButton(onClick = onFit) {
+                Icon(
+                    Icons.Default.FitScreen,
+                    contentDescription = stringResource(R.string.pdf_fit_to_width)
+                )
+            }
+            Text(
+                text = "${scale.times(100).roundToInt()}%",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.widthIn(min = 42.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemePickerDialog(
+    currentTheme: ThemeMode,
+    onThemeSelected: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Brightness6, contentDescription = null) },
+        title = { Text(stringResource(R.string.pdf_viewer_appearance)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                ThemeMode.entries.forEach { theme ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { onThemeSelected(theme) },
+                        color = if (theme == currentTheme) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            Color.Transparent
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = when (theme) {
+                                    ThemeMode.LIGHT -> Icons.Default.LightMode
+                                    ThemeMode.DARK -> Icons.Default.DarkMode
+                                    ThemeMode.SYSTEM -> Icons.Default.Brightness6
+                                },
+                                contentDescription = null,
+                                tint = if (theme == currentTheme) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = theme.displayName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (theme == currentTheme) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        }
+    )
 }
 
 @Composable
@@ -1134,6 +1397,7 @@ private fun PdfPagesContent(
     scale: Float,
     onScaleChange: (Float) -> Unit,
     offsetX: Float,
+    offsetY: Float,
     onOffsetChange: (Float, Float) -> Unit,
     listState: LazyListState,
     isEditMode: Boolean,
@@ -1166,9 +1430,11 @@ private fun PdfPagesContent(
     // Use rememberUpdatedState to get latest values inside pointerInput without restarting
     val currentScale by rememberUpdatedState(scale)
     val currentOffsetX by rememberUpdatedState(offsetX)
+    val currentOffsetY by rememberUpdatedState(offsetY)
     val currentOnScaleChange by rememberUpdatedState(onScaleChange)
     val currentOnOffsetChange by rememberUpdatedState(onOffsetChange)
     val currentContainerSize by rememberUpdatedState(containerSize)
+    val currentPageSize by rememberUpdatedState(pageSize)
 
     // Wrapper box to clip the scaled content so it doesn't bleed outside container bounds
     Box(modifier = Modifier.fillMaxSize().clipToBounds()) {
@@ -1193,24 +1459,33 @@ private fun PdfPagesContent(
                                     val event = awaitPointerEvent()
                                     val zoomChange = event.calculateZoom()
                                     val panChange = event.calculatePan()
+                                    val centroid = event.calculateCentroid(useCurrent = false)
 
                                     val newScale = (currentScale * zoomChange).coerceIn(1f, 5f)
-
-                                    val containerWidth = currentContainerSize.width.toFloat()
-                                    val scaledContentWidth = containerWidth * newScale
-                                    val maxOffsetX = ((scaledContentWidth - containerWidth) / 2f).coerceAtLeast(0f)
+                                    val ratio = newScale / currentScale.coerceAtLeast(0.01f)
+                                    val centerX = currentContainerSize.width / 2f
+                                    val focalX = if (centroid.isFinite) centroid.x else centerX
+                                    val focalY = if (centroid.isFinite) centroid.y else currentContainerSize.height / 2f
 
                                     currentOnScaleChange(newScale)
 
                                     if (newScale > 1f) {
-                                        val newOffsetX = (currentOffsetX + panChange.x)
-                                            .coerceIn(-maxOffsetX, maxOffsetX)
-                                        currentOnOffsetChange(newOffsetX, 0f)
+                                        // Keep the content under the user's fingers while zooming.
+                                        val nextX = (focalX - centerX) * (1f - ratio) + currentOffsetX * ratio
+                                        val nextY = focalY * (1f - ratio) + currentOffsetY * ratio + panChange.y
+                                        val maxOffsetX = ((currentContainerSize.width * (newScale - 1f)) / 2f)
+                                            .coerceAtLeast(0f)
+                                        val maxOffsetY = ((currentPageSize.height * newScale) - currentContainerSize.height)
+                                            .coerceAtLeast(0f)
+                                        currentOnOffsetChange(
+                                            nextX.coerceIn(-maxOffsetX, maxOffsetX),
+                                            nextY.coerceIn(-maxOffsetY, 0f)
+                                        )
+                                    } else {
+                                        currentOnOffsetChange(0f, 0f)
                                         if (panChange.y != 0f) {
                                             listState.dispatchRawDelta(-panChange.y)
                                         }
-                                    } else {
-                                        currentOnOffsetChange(0f, 0f)
                                     }
                                 } while (event.changes.any { it.pressed })
                             }
@@ -1236,8 +1511,8 @@ private fun PdfPagesContent(
                         scaleX = scale
                         scaleY = scale
                         translationX = offsetX
-                        translationY = 0f
-                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f) // Top-center anchor
+                        translationY = offsetY
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f)
                     }
             ) {
                 LazyColumn(

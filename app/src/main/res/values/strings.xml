@@ -207,6 +207,8 @@
     <string name="pdf_search">Search</string>
     <string name="pdf_share">Share</string>
     <string name="pdf_save">Save</string>
+    <string name="pdf_viewer_appearance">Viewer appearance</string>
+    <string name="pdf_redo">Redo</string>
     <string name="pdf_highlighter">Highlighter</string>
     <string name="pdf_marker">Marker</string>
     <string name="pdf_underline">Underline</string>

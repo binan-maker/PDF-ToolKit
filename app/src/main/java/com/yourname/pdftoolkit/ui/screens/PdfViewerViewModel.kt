@@ -130,6 +130,9 @@ open class PdfViewerViewModel : ViewModel() {
     private val _annotations = MutableStateFlow<List<AnnotationStroke>>(emptyList())
     open val annotations: StateFlow<List<AnnotationStroke>> = _annotations.asStateFlow()
 
+    private val _redoAnnotations = MutableStateFlow<List<AnnotationStroke>>(emptyList())
+    open val redoAnnotations: StateFlow<List<AnnotationStroke>> = _redoAnnotations.asStateFlow()
+
     // Stroke width configurations for each drawing tool
     private val _highlighterWidth = MutableStateFlow(20f)
     open val highlighterWidth: StateFlow<Float> = _highlighterWidth.asStateFlow()
@@ -387,14 +390,25 @@ open class PdfViewerViewModel : ViewModel() {
         val currentList = _annotations.value.toMutableList()
         currentList.add(stroke)
         _annotations.value = currentList
+        _redoAnnotations.value = emptyList()
     }
 
     fun undoAnnotation() {
         if (_annotations.value.size > 500) throw OutOfMemoryError("PDF has too many annotations to process at once")
         val currentList = _annotations.value.toMutableList()
         if (currentList.isNotEmpty()) {
-            currentList.removeAt(currentList.lastIndex)
+            val removed = currentList.removeAt(currentList.lastIndex)
             _annotations.value = currentList
+            _redoAnnotations.value = _redoAnnotations.value + removed
+        }
+    }
+
+    fun redoAnnotation() {
+        val redoList = _redoAnnotations.value.toMutableList()
+        if (redoList.isNotEmpty()) {
+            val restored = redoList.removeAt(redoList.lastIndex)
+            _annotations.value = _annotations.value + restored
+            _redoAnnotations.value = redoList
         }
     }
 
@@ -416,6 +430,7 @@ open class PdfViewerViewModel : ViewModel() {
 
     fun clearAnnotations() {
         _annotations.value = emptyList()
+        _redoAnnotations.value = emptyList()
     }
 
     // Keep only a small nearby-page cache. Large PDF bitmaps are expensive and
