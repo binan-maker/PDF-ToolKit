@@ -502,38 +502,44 @@ open class PdfViewerViewModel : ViewModel() {
                     if (androidRenderer != null) {
                         try {
                             val page = androidRenderer.openPage(pageIndex)
-                            val renderScale = calculateCappedRenderScale(pageIndex)
-                            val width = (page.width * renderScale).toInt().coerceAtLeast(1)
-                            val height = (page.height * renderScale).toInt().coerceAtLeast(1)
-                            val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                            bm.eraseColor(android.graphics.Color.WHITE)
-                            page.render(bm, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            page.close()
-
-                            if (!bm.isRecycled) {
-                                bitmapCache.put(pageIndex, bm)
-                                bm
-                            } else {
-                                null
-                            }
-                        } catch (oom: OutOfMemoryError) {
-                            Log.e("PdfViewerVM", "OOM rendering page $pageIndex, clearing cache and retrying at lower scale", oom)
-                            bitmapCache.evictAll()
                             try {
-                                val page = androidRenderer.openPage(pageIndex)
-                                val renderScale = calculateCappedRenderScale(pageIndex) * 0.5f
+                                val renderScale = calculateCappedRenderScale(pageIndex)
                                 val width = (page.width * renderScale).toInt().coerceAtLeast(1)
                                 val height = (page.height * renderScale).toInt().coerceAtLeast(1)
                                 val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                                 bm.eraseColor(android.graphics.Color.WHITE)
                                 page.render(bm, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                                page.close()
 
                                 if (!bm.isRecycled) {
                                     bitmapCache.put(pageIndex, bm)
                                     bm
                                 } else {
                                     null
+                                }
+                            } finally {
+                                page.close()
+                            }
+                        } catch (oom: OutOfMemoryError) {
+                            Log.e("PdfViewerVM", "OOM rendering page $pageIndex, clearing cache and retrying at lower scale", oom)
+                            bitmapCache.evictAll()
+                            try {
+                                val page = androidRenderer.openPage(pageIndex)
+                                try {
+                                    val renderScale = calculateCappedRenderScale(pageIndex) * 0.5f
+                                    val width = (page.width * renderScale).toInt().coerceAtLeast(1)
+                                    val height = (page.height * renderScale).toInt().coerceAtLeast(1)
+                                    val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                                    bm.eraseColor(android.graphics.Color.WHITE)
+                                    page.render(bm, null, null, AndroidPdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+
+                                    if (!bm.isRecycled) {
+                                        bitmapCache.put(pageIndex, bm)
+                                        bm
+                                    } else {
+                                        null
+                                    }
+                                } finally {
+                                    page.close()
                                 }
                             } catch (t: Throwable) {
                                 Log.e("PdfViewerVM", "Failed to render page $pageIndex even at lower scale", t)
@@ -1063,16 +1069,12 @@ open class PdfViewerViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        val exceptionHandler = kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
-            if (e is OutOfMemoryError) {
-                _uiState.update {
-                    PdfViewerUiState.Error("Not enough memory. Close other apps and try again.")
-                }
-            } else throw e
-        }
-        viewModelScope.launch(Dispatchers.IO + exceptionHandler) {
+        // Compose can still be drawing a page for a frame after this ViewModel
+        // is cleared. Never recycle those bitmaps here; releasing references
+        // lets the renderer and GC finish safely without recycled-bitmap
+        // crashes when the user taps or navigates away.
+        viewModelScope.launch(Dispatchers.IO) {
             synchronized(activeBitmaps) {
-                uiBitmapRefs.values.forEach { if (!it.isRecycled) it.recycle() }
                 uiBitmapRefs.clear()
                 activeBitmaps.clear()
             }

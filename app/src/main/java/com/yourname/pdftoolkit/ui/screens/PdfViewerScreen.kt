@@ -26,7 +26,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -37,6 +39,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -53,7 +56,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -324,6 +326,8 @@ fun PdfViewerScreen(
                 if (toolState is PdfTool.Search) {
                     // Search mode top bar
                     TopAppBar(
+                        modifier = Modifier.statusBarsPadding(),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
                         title = {
                             OutlinedTextField(
                                 value = searchState.query,
@@ -400,20 +404,41 @@ fun PdfViewerScreen(
                 } else {
                     // Focused document command bar
                     TopAppBar(
+                        modifier = Modifier.statusBarsPadding(),
+                        windowInsets = WindowInsets(0, 0, 0, 0),
                         title = {
-                            Column {
-                                Text(
-                                    text = pdfName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1
-                                )
-                                if (totalPages > 0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.size(34.dp),
+                                    shape = RoundedCornerShape(11.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.PictureAsPdf,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(19.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text(
-                                        text = "$totalPages pages  •  ${scale.times(100).roundToInt()}%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = pdfName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
                                     )
+                                    if (totalPages > 0) {
+                                        Text(
+                                            text = "$totalPages pages  •  ${scale.times(100).roundToInt()}%",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         },
@@ -666,7 +691,7 @@ fun PdfViewerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f))
                 .testTag("PdfPagesContent")
                 .pointerInput(toolState, selectedAnnotationTool, scale, offsetX, offsetY, viewportSize) {
                     val isDrawing = toolState is PdfTool.Edit && selectedAnnotationTool != AnnotationTool.NONE
@@ -915,14 +940,21 @@ private fun AnnotationToolbar(
     val haptic = LocalHapticFeedback.current
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shadowElevation = 8.dp
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ToolButton(
@@ -1020,36 +1052,44 @@ private fun ToolButton(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Surface(
         modifier = Modifier
-            .clip(MaterialTheme.shapes.small)
-            .clickable(onClick = onClick)
-            .padding(4.dp)
+            .widthIn(min = 54.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            Color.Transparent
+        }
     ) {
-        Box(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                    else Color.Transparent
-                ),
-            contentAlignment = Alignment.Center
+                .padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                color = if (isSelected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -1066,17 +1106,17 @@ private fun ViewerNavigationDock(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        shape = RoundedCornerShape(24.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        tonalElevation = 6.dp,
-        shadowElevation = 10.dp,
+        tonalElevation = 5.dp,
+        shadowElevation = 12.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 8.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             FilledTonalButton(
@@ -1631,10 +1671,13 @@ private fun PdfPageWithAnnotations(
         }
     }
 
-    // Load bitmap lazily
-    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = pageIndex) {
+    // Load bitmap lazily. A local attempt key lets retry start a fresh
+    // producer without restarting it on every page-state update.
+    var loadAttempt by remember(pageIndex) { mutableIntStateOf(0) }
+    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = pageIndex, key2 = loadAttempt) {
         value = loadPage(pageIndex)
     }
+    val drawableBitmap = bitmap?.takeUnless { it.isRecycled }
 
     DisposableEffect(pageIndex) {
         onDispose {
@@ -1645,13 +1688,21 @@ private fun PdfPageWithAnnotations(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 18.dp, vertical = 7.dp)
             .shadow(
-                elevation = 2.dp,
-                shape = RectangleShape,
+                elevation = 10.dp,
+                shape = RoundedCornerShape(10.dp),
                 clip = false
             )
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surface)
+            .then(
+                Modifier.border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                    RoundedCornerShape(10.dp)
+                )
+            )
     ) {
         Box(
             modifier = Modifier
@@ -1662,8 +1713,8 @@ private fun PdfPageWithAnnotations(
                 }
                 .heightIn(min = 200.dp)
                 .then(
-                    if ((!isEditMode || selectedTool == AnnotationTool.NONE) && bitmap != null) {
-                        Modifier.pointerInput(pageIndex, bitmap, size) {
+                    if ((!isEditMode || selectedTool == AnnotationTool.NONE) && drawableBitmap != null) {
+                        Modifier.pointerInput(pageIndex, drawableBitmap, size) {
                             detectTapGestures(
                                 onTap = {
                                     if (selectPageIndex != -1) {
@@ -1672,13 +1723,15 @@ private fun PdfPageWithAnnotations(
                                 },
                                 onLongPress = { touchOffset ->
                                     if (listState.isScrollInProgress) return@detectTapGestures
+                                    val currentBitmap = drawableBitmap ?: return@detectTapGestures
+                                    if (size.width <= 0 || size.height <= 0) return@detectTapGestures
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     scope.launch {
                                         val textData = viewModel.getPageText(pageIndex)
                                         if (textData != null && textData.positions.isNotEmpty()) {
                                             pageTextData = textData
-                                            val scaleX = size.width.toFloat() / bitmap!!.width.toFloat()
-                                            val scaleY = size.height.toFloat() / bitmap!!.height.toFloat()
+                                            val scaleX = size.width.toFloat() / currentBitmap.width.toFloat()
+                                            val scaleY = size.height.toFloat() / currentBitmap.height.toFloat()
                                             val closest = findClosestCharIndex(touchOffset.x, touchOffset.y, textData.positions, scaleX, scaleY)
                                             if (closest != -1) {
                                                 val bounds = findWordBounds(closest, textData.text, textData.positions)
@@ -1693,10 +1746,10 @@ private fun PdfPageWithAnnotations(
                 )
         ) {
             when {
-                bitmap != null -> {
+                drawableBitmap != null -> {
                     // PDF page image
                     Image(
-                        bitmap = bitmap!!.asImageBitmap(),
+                        bitmap = drawableBitmap.asImageBitmap(),
                         contentDescription = stringResource(R.string.cd_page_number, pageIndex + 1),
                         modifier = Modifier
                             .fillMaxWidth(),
@@ -1727,7 +1780,10 @@ private fun PdfPageWithAnnotations(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
-                            onClick = { onRetry(pageIndex) },
+                            onClick = {
+                                onRetry(pageIndex)
+                                loadAttempt++
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
                             )
@@ -1749,7 +1805,7 @@ private fun PdfPageWithAnnotations(
             }
 
             // Search Highlights Overlay
-            if (pageMatches.isNotEmpty() && bitmap != null) {
+            if (pageMatches.isNotEmpty() && drawableBitmap != null) {
                 Canvas(modifier = Modifier.matchParentSize()) {
                     pageMatches.forEachIndexed { index, match ->
                         val color = if (index == currentMatchIndexOnPage) {
@@ -1759,8 +1815,8 @@ private fun PdfPageWithAnnotations(
                         }
 
                         match.rects.forEach { rect ->
-                            val scaleX = size.width.toFloat() / bitmap!!.width.toFloat()
-                            val scaleY = size.height.toFloat() / bitmap!!.height.toFloat()
+                            val scaleX = size.width.toFloat() / drawableBitmap.width.toFloat()
+                            val scaleY = size.height.toFloat() / drawableBitmap.height.toFloat()
 
                             drawRect(
                                 color = color,
@@ -1781,10 +1837,10 @@ private fun PdfPageWithAnnotations(
             val currentPositions = pageTextData?.positions
             if (selectPageIndex == pageIndex && selectStartCharIndex >= 0 && currentPositions != null &&
                 selectStartCharIndex < currentPositions.size && selectEndCharIndex > selectStartCharIndex &&
-                selectEndCharIndex <= currentPositions.size && bitmap != null) {
+                selectEndCharIndex <= currentPositions.size && drawableBitmap != null) {
 
-                val scaleX = size.width.toFloat() / bitmap!!.width.toFloat()
-                val scaleY = size.height.toFloat() / bitmap!!.height.toFloat()
+                val scaleX = size.width.toFloat() / drawableBitmap.width.toFloat()
+                val scaleY = size.height.toFloat() / drawableBitmap.height.toFloat()
 
                 val selectedPositions = currentPositions.subList(selectStartCharIndex, selectEndCharIndex)
                 val lines = mutableListOf<MutableList<TextPosition>>()
@@ -1959,8 +2015,8 @@ private fun PdfPageWithAnnotations(
 
                             TextButton(
                                 onClick = {
-                                    val pdfPageWidth = bitmap!!.width.toFloat() / PdfViewerViewModel.RENDER_SCALE
-                                    val pdfPageHeight = bitmap!!.height.toFloat() / PdfViewerViewModel.RENDER_SCALE
+                                    val pdfPageWidth = drawableBitmap.width.toFloat() / PdfViewerViewModel.RENDER_SCALE
+                                    val pdfPageHeight = drawableBitmap.height.toFloat() / PdfViewerViewModel.RENDER_SCALE
 
                                     lines.forEach { line ->
                                         val minLeft = line.minOf { it.xDirAdj }
@@ -1998,7 +2054,7 @@ private fun PdfPageWithAnnotations(
             }
 
             // Annotation overlay (kept same but normalized/denormalized)
-            if ((isEditMode || annotations.isNotEmpty()) && bitmap != null) {
+            if ((isEditMode || annotations.isNotEmpty()) && drawableBitmap != null) {
                 Canvas(
                     modifier = Modifier
                         .matchParentSize()
