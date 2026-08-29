@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui
+package com.anonymous.imgpdf.ui
 
 import android.content.Intent
 import android.net.Uri
@@ -20,13 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import com.yourname.pdftoolkit.data.SafUriManager
-import com.yourname.pdftoolkit.ui.navigation.AppNavigation
-import com.yourname.pdftoolkit.ui.theme.PDFToolkitTheme
-import com.yourname.pdftoolkit.util.CacheManager
-import com.yourname.pdftoolkit.util.RatingManager
-import com.yourname.pdftoolkit.util.ReviewHelper
-import com.yourname.pdftoolkit.util.LanguageManager
+import com.anonymous.imgpdf.data.SafUriManager
+import com.anonymous.imgpdf.ui.navigation.AppNavigation
+import com.anonymous.imgpdf.ui.theme.PDFToolkitTheme
+import com.anonymous.imgpdf.util.CacheManager
+import com.anonymous.imgpdf.util.RatingManager
+import com.anonymous.imgpdf.util.ReviewHelper
+import com.anonymous.imgpdf.util.LanguageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -449,7 +449,7 @@ class MainActivity : AppCompatActivity() {
     private fun cleanOldCachedFiles(cacheDir: File) {
         try {
             val oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000)
-            val dao = com.yourname.pdftoolkit.data.local.AppDatabase.getDatabase(applicationContext).recentFilesDao()
+            val dao = com.anonymous.imgpdf.data.local.AppDatabase.getDatabase(applicationContext).recentFilesDao()
             activityScope.launch(Dispatchers.IO) {
                 val recentUris = try {
                     dao.getAll().map { it.uriString }

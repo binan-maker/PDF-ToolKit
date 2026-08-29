@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.util
+package com.anonymous.imgpdf.util
 
 import android.content.ContentValues
 import android.content.Context
@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
-import com.yourname.pdftoolkit.data.FileManager
+import com.anonymous.imgpdf.data.FileManager
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream

@@ -1,13 +1,13 @@
-package com.yourname.pdftoolkit
+package com.anonymous.imgpdf
 
 import android.app.Application
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
-import com.yourname.pdftoolkit.review.ReviewIntegration
-import com.yourname.pdftoolkit.util.CacheManager
-import com.yourname.pdftoolkit.util.ThemeManager
-import com.yourname.pdftoolkit.util.LanguageManager
+import com.anonymous.imgpdf.review.ReviewIntegration
+import com.anonymous.imgpdf.util.CacheManager
+import com.anonymous.imgpdf.util.ThemeManager
+import com.anonymous.imgpdf.util.LanguageManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

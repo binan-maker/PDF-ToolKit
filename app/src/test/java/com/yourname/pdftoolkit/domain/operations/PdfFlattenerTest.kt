@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain.operations
+package com.anonymous.imgpdf.domain.operations
 
 import android.net.Uri
 import com.tom_roush.pdfbox.pdmodel.PDDocument

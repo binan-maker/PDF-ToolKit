@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.util
+package com.anonymous.imgpdf.util
 
 import android.app.Activity
 import android.content.Context
@@ -117,7 +117,7 @@ object CropHelper {
             
             // Step 5: Get intent and add URI permissions
             val intent = uCrop.getIntent(context)
-            intent.setClass(context, com.yourname.pdftoolkit.ui.crop.CustomUCropActivity::class.java)
+            intent.setClass(context, com.anonymous.imgpdf.ui.crop.CustomUCropActivity::class.java)
             
             // Grant read permission to source and write permission to destination
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

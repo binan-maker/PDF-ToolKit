@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.components
+package com.anonymous.imgpdf.ui.components
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,8 +22,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Close
-import com.yourname.pdftoolkit.util.OutputFolderManager
-import com.yourname.pdftoolkit.util.OutputFile
+import com.anonymous.imgpdf.util.OutputFolderManager
+import com.anonymous.imgpdf.util.OutputFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream

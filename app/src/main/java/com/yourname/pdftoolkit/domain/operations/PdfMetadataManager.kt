@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain.operations
+package com.anonymous.imgpdf.domain.operations
 
 import android.content.Context
 import android.net.Uri
@@ -8,7 +8,7 @@ import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream
-import com.yourname.pdftoolkit.util.MemoryGuard
+import com.anonymous.imgpdf.util.MemoryGuard
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale

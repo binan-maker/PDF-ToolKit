@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,10 +28,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.yourname.pdftoolkit.domain.operations.PdfOcrProcessor
-import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
-import com.yourname.pdftoolkit.ui.components.ToolTopBar
-import com.yourname.pdftoolkit.util.FileOpener
+import com.anonymous.imgpdf.domain.operations.PdfOcrProcessor
+import com.anonymous.imgpdf.ui.components.PdfToolHeroCard
+import com.anonymous.imgpdf.ui.components.ToolTopBar
+import com.anonymous.imgpdf.util.FileOpener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,12 +107,12 @@ class OcrViewModel : ViewModel() {
             )
 
             if (result?.success == true) {
-                com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, outputUri)
+                com.anonymous.imgpdf.data.SafUriManager.addRecentFile(context, outputUri)
 
                 // Record in history
-                com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
+                com.anonymous.imgpdf.data.HistoryManager.recordSuccess(
                     context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.OCR,
+                    operationType = com.anonymous.imgpdf.data.OperationType.OCR,
                     inputFileName = sourceUri.lastPathSegment ?: "PDF",
                     outputFileUri = outputUri,
                     outputFileName = "searchable.pdf",
@@ -120,9 +120,9 @@ class OcrViewModel : ViewModel() {
                 )
             } else if (result?.success == false) {
                 // Record failure in history
-                com.yourname.pdftoolkit.data.HistoryManager.recordFailure(
+                com.anonymous.imgpdf.data.HistoryManager.recordFailure(
                     context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.OCR,
+                    operationType = com.anonymous.imgpdf.data.OperationType.OCR,
                     inputFileName = sourceUri.lastPathSegment ?: "PDF",
                     errorMessage = result.errorMessage
                 )

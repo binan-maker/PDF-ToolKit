@@ -10,7 +10,7 @@
 
 ## 1. F-Droid Metadata State
 
-Inspected file: `metadata/com.yourname.pdftoolkit.yml` on branch `add-pdf-toolkit`:
+Inspected file: `metadata/com.anonymous.imgpdf.yml` on branch `add-pdf-toolkit`:
 
 ```yaml
 Categories:

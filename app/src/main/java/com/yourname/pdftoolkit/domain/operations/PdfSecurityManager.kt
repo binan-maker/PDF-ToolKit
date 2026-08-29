@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain.operations
+package com.anonymous.imgpdf.domain.operations
 
 import android.content.Context
 import android.net.Uri
@@ -9,7 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream
 import java.io.BufferedOutputStream
-import com.yourname.pdftoolkit.util.MemoryGuard
+import com.anonymous.imgpdf.util.MemoryGuard
 
 /**
  * Security options for PDF protection.

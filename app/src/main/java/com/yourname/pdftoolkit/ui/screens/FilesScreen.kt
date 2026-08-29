@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.content.Context
 import android.content.Intent
@@ -33,9 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.data.PersistedFile
-import com.yourname.pdftoolkit.data.SafUriManager
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.data.PersistedFile
+import com.anonymous.imgpdf.data.SafUriManager
+import com.anonymous.imgpdf.util.FileOpener
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -242,64 +243,66 @@ fun FilesScreen(
                 )
             }
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 20.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = filesColors.cardStrong),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                onClick = {
-                    documentPickerLauncher.safeLaunch(pdfMimeTypes, context)
-                }
-            ) {
-                Row(
+            if (false) {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(filesColors.cardStrong, Color(0xFF3D315E))
-                            )
-                        )
-                        .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = filesColors.cardStrong),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    onClick = {
+                        documentPickerLauncher.safeLaunch(pdfMimeTypes, context)
+                    }
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = filesColors.accent.copy(alpha = 0.18f),
-                        modifier = Modifier.size(48.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(filesColors.cardStrong, Color(0xFF3D315E))
+                                )
+                            )
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.FileOpen,
-                            contentDescription = null,
-                            tint = filesColors.accent,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.files_open_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = stringResource(R.string.files_open_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.68f)
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = filesColors.accent
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.padding(9.dp).size(20.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = filesColors.accent.copy(alpha = 0.18f),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FileOpen,
+                                contentDescription = null,
+                                tint = filesColors.accent,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.files_open_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = stringResource(R.string.files_open_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.68f)
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = filesColors.accent
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.padding(9.dp).size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -417,11 +420,7 @@ fun FilesScreen(
                                         val displayName = file.name.substringBeforeLast('.')
                                         if (file.mimeType == "application/pdf") {
                                             val cachedUri = copyUriToCache(context, uri)
-                                            if (cachedUri != null) {
-                                                onOpenPdfViewer(cachedUri, displayName)
-                                            } else {
-                                                onOpenPdfViewer(uri, displayName)
-                                            }
+                                            FileOpener.openPdf(context, cachedUri ?: uri)
                                         }
                                     }
                                 }

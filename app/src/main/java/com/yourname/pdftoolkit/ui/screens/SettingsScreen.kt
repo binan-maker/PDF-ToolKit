@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.screens
+package com.anonymous.imgpdf.ui.screens
 
 import android.content.Context
 import android.content.Intent
@@ -33,14 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yourname.pdftoolkit.BuildConfig
-import com.yourname.pdftoolkit.ui.components.LicensesDialog
-import com.yourname.pdftoolkit.util.CacheManager
-import com.yourname.pdftoolkit.util.ThemeManager
-import com.yourname.pdftoolkit.util.ThemeMode
-import com.yourname.pdftoolkit.util.PdfTools
-import com.yourname.pdftoolkit.util.LanguageManager
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.BuildConfig
+import com.anonymous.imgpdf.ui.components.LicensesDialog
+import com.anonymous.imgpdf.util.CacheManager
+import com.anonymous.imgpdf.util.ThemeManager
+import com.anonymous.imgpdf.util.ThemeMode
+import com.anonymous.imgpdf.util.PdfTools
+import com.anonymous.imgpdf.util.LanguageManager
+import com.anonymous.imgpdf.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -357,21 +357,23 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     title = stringResource(R.string.settings_version),
-                    subtitle = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                    subtitle = "V - 1 (0.0.1)",
                     icon = Icons.Default.Info,
                     onClick = { showAboutDialog = true }
                 )
             }
 
-            item {
-                SettingsItem(
-                    title = stringResource(R.string.settings_privacy_policy),
-                    subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
-                    icon = Icons.Default.PrivacyTip,
-                    onClick = {
-                        openPrivacyPolicy(context)
-                    }
-                )
+            if (false) {
+                item {
+                    SettingsItem(
+                        title = stringResource(R.string.settings_privacy_policy),
+                        subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
+                        icon = Icons.Default.PrivacyTip,
+                        onClick = {
+                            openPrivacyPolicy(context)
+                        }
+                    )
+                }
             }
 
         }
@@ -1018,11 +1020,11 @@ private fun sendBugReport(context: Context) {
 private fun openPlayStore(context: Context) {
     try {
         context.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.yourname.pdftoolkit"))
+            Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.anonymous.imgpdf"))
         )
     } catch (e: Exception) {
         context.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.yourname.pdftoolkit"))
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.anonymous.imgpdf"))
         )
     }
 }

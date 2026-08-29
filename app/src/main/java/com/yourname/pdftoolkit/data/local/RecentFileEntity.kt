@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.data.local
+package com.anonymous.imgpdf.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.yourname.pdftoolkit.data.PersistedFile
+import com.anonymous.imgpdf.data.PersistedFile
 
 @Entity(tableName = "recent_files")
 data class RecentFileEntity(

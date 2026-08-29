@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain.operations
+package com.anonymous.imgpdf.domain.operations
 
 import android.content.Context
 import android.graphics.pdf.PdfDocument

@@ -1,9 +1,9 @@
-package com.yourname.pdftoolkit.data
+package com.anonymous.imgpdf.data
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
-import com.yourname.pdftoolkit.util.RatingManager
+import com.anonymous.imgpdf.util.RatingManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray

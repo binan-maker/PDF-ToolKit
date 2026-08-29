@@ -37,7 +37,7 @@
 
 ## 4. F-Droid Ecosystem Status
 
-- **F-Droid Metadata:** [`metadata/com.yourname.pdftoolkit.yml`](file:///c:/Users/chait/Projects/pdf_tools/metadata/com.yourname.pdftoolkit.yml) configured with `CurrentVersion: 1.3.210` and `CurrentVersionCode: 210`.
+- **F-Droid Metadata:** [`metadata/com.anonymous.imgpdf.yml`](file:///c:/Users/chait/Projects/pdf_tools/metadata/com.anonymous.imgpdf.yml) configured with `CurrentVersion: 1.3.210` and `CurrentVersionCode: 210`.
 - **Fork Repository Status:** `https://gitlab.com/Karna14314/fdroiddata.git` branch `add-pdf-toolkit` is aligned with `1.3.210`.
 - **Auto-Update Engine:** `AutoUpdateMode: Version` and `UpdateCheckMode: Tags` configured to scan Git tags and parse `gradle.properties`. Future tag releases will be discovered and compiled automatically by F-Droid.
 

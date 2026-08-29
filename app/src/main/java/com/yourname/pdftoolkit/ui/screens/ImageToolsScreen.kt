@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.content.ContentValues
 import android.content.Intent
@@ -26,12 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.CacheManager
-import com.yourname.pdftoolkit.util.ImageProcessor
-import com.yourname.pdftoolkit.util.OutputFormat
-import com.yourname.pdftoolkit.util.ResolutionPreset
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.ui.components.*
+import com.anonymous.imgpdf.util.CacheManager
+import com.anonymous.imgpdf.util.ImageProcessor
+import com.anonymous.imgpdf.util.OutputFormat
+import com.anonymous.imgpdf.util.ResolutionPreset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

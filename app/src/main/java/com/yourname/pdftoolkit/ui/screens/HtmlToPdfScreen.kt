@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,10 +20,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.domain.operations.HtmlToPdfConverter
-import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.anonymous.imgpdf.domain.operations.HtmlToPdfConverter
+import com.anonymous.imgpdf.ui.components.*
+import com.anonymous.imgpdf.util.FileOpener
+import com.anonymous.imgpdf.util.OutputFolderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,7 +40,7 @@ fun HtmlToPdfScreen(
     val scope = rememberCoroutineScope()
     val converter = remember { HtmlToPdfConverter() }
 
-    val hasNetworkUrlSupport = com.yourname.pdftoolkit.BuildConfig.HAS_NETWORK_URL_TO_PDF
+    val hasNetworkUrlSupport = com.anonymous.imgpdf.BuildConfig.HAS_NETWORK_URL_TO_PDF
 
     // State
     var inputMode by remember {
@@ -94,13 +94,13 @@ fun HtmlToPdfScreen(
                             resultMessage = "PDF created successfully!\n\nPages: ${conversionResult.pageCount}"
 
                             // Add to recent files
-                            com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, saveUri)
+                            com.anonymous.imgpdf.data.SafUriManager.addRecentFile(context, saveUri)
 
                             // Record in history
                             scope.launch {
-                                com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
+                                com.anonymous.imgpdf.data.HistoryManager.recordSuccess(
                                     context = context,
-                                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
+                                    operationType = com.anonymous.imgpdf.data.OperationType.HTML_TO_PDF,
                                     inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
                                     outputFileUri = saveUri,
                                     outputFileName = "html_to_pdf.pdf",
@@ -117,9 +117,9 @@ fun HtmlToPdfScreen(
 
                             // Record failure in history
                             scope.launch {
-                                com.yourname.pdftoolkit.data.HistoryManager.recordFailure(
+                                com.anonymous.imgpdf.data.HistoryManager.recordFailure(
                                     context = context,
-                                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
+                                    operationType = com.anonymous.imgpdf.data.OperationType.HTML_TO_PDF,
                                     inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
                                     errorMessage = error.message
                                 )
@@ -199,20 +199,20 @@ fun HtmlToPdfScreen(
 
             // Record in history
             if (resultSuccess && result.third != null) {
-                com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, result.third!!)
+                com.anonymous.imgpdf.data.SafUriManager.addRecentFile(context, result.third!!)
 
-                com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
+                com.anonymous.imgpdf.data.HistoryManager.recordSuccess(
                     context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
+                    operationType = com.anonymous.imgpdf.data.OperationType.HTML_TO_PDF,
                     inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
                     outputFileUri = result.third,
                     outputFileName = "html_to_pdf.pdf",
                     details = resultMessage.substringBefore("\n\nSaved to:")
                 )
             } else if (!resultSuccess) {
-                com.yourname.pdftoolkit.data.HistoryManager.recordFailure(
+                com.anonymous.imgpdf.data.HistoryManager.recordFailure(
                     context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.HTML_TO_PDF,
+                    operationType = com.anonymous.imgpdf.data.OperationType.HTML_TO_PDF,
                     inputFileName = if (inputMode == InputMode.URL) urlInput else "HTML content",
                     errorMessage = resultMessage
                 )

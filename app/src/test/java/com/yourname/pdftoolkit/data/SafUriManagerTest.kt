@@ -1,6 +1,6 @@
-package com.yourname.pdftoolkit.data
+package com.anonymous.imgpdf.data
 
-import com.yourname.pdftoolkit.data.local.RecentFileEntity
+import com.anonymous.imgpdf.data.local.RecentFileEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -10,7 +10,7 @@ class SafUriManagerTest {
     @Test
     fun persistedFile_conversion_isCorrect() {
         val original = PersistedFile(
-            uriString = "content://com.yourname.pdftoolkit.provider/shared_files/shared_123.pdf",
+            uriString = "content://com.anonymous.imgpdf.provider/shared_files/shared_123.pdf",
             name = "Sample_Report.pdf",
             mimeType = "application/pdf",
             size = 2048L,
@@ -31,7 +31,7 @@ class SafUriManagerTest {
     @Test
     fun persistedFile_uriParsing_isCorrect() {
         val file = PersistedFile(
-            uriString = "content://com.yourname.pdftoolkit.provider/shared_files/shared_123.pdf",
+            uriString = "content://com.anonymous.imgpdf.provider/shared_files/shared_123.pdf",
             name = "Test.pdf",
             mimeType = "application/pdf",
             size = 100L,
@@ -41,6 +41,6 @@ class SafUriManagerTest {
         val uri = file.toUri()
         assertNotNull(uri)
         assertEquals("content", uri?.scheme)
-        assertEquals("com.yourname.pdftoolkit.provider", uri?.authority)
+        assertEquals("com.anonymous.imgpdf.provider", uri?.authority)
     }
 }

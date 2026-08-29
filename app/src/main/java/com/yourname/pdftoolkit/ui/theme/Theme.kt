@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.theme
+package com.anonymous.imgpdf.ui.theme
 
 import android.app.Activity
 import android.os.Build

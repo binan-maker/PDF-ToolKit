@@ -1,7 +1,7 @@
-package com.yourname.pdftoolkit.ui.screens
+package com.anonymous.imgpdf.ui.screens
 
-import com.yourname.pdftoolkit.util.safeLaunch
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.util.safeLaunch
+import com.anonymous.imgpdf.R
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import android.content.Intent
@@ -73,10 +73,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yourname.pdftoolkit.data.SafUriManager
-import com.yourname.pdftoolkit.util.PrintUtils
-import com.yourname.pdftoolkit.util.ThemeManager
-import com.yourname.pdftoolkit.util.ThemeMode
+import com.anonymous.imgpdf.data.SafUriManager
+import com.anonymous.imgpdf.util.PrintUtils
+import com.anonymous.imgpdf.util.ThemeManager
+import com.anonymous.imgpdf.util.ThemeMode
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString

@@ -1,10 +1,10 @@
-package com.yourname.pdftoolkit
+package com.anonymous.imgpdf
 
 import android.net.Uri
 import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.core.app.ApplicationProvider
-import com.yourname.pdftoolkit.data.SafUriManager
+import com.anonymous.imgpdf.data.SafUriManager
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.assertFalse

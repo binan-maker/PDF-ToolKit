@@ -1,5 +1,5 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,13 +19,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.data.PdfFileInfo
-import com.yourname.pdftoolkit.domain.operations.PdfUnlocker
-import com.yourname.pdftoolkit.domain.operations.UnlockError
-import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.data.PdfFileInfo
+import com.anonymous.imgpdf.domain.operations.PdfUnlocker
+import com.anonymous.imgpdf.domain.operations.UnlockError
+import com.anonymous.imgpdf.ui.components.*
+import com.anonymous.imgpdf.util.FileOpener
+import com.anonymous.imgpdf.util.OutputFolderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

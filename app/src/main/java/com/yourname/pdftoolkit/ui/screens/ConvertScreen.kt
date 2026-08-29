@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.app.Activity
 import android.net.Uri
@@ -35,16 +35,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.data.HistoryManager
-import com.yourname.pdftoolkit.data.SafUriManager
-import com.yourname.pdftoolkit.data.OperationType
-import com.yourname.pdftoolkit.domain.operations.ImageConverter
-import com.yourname.pdftoolkit.domain.operations.PageSize
-import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.CropHelper
-import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.data.HistoryManager
+import com.anonymous.imgpdf.data.SafUriManager
+import com.anonymous.imgpdf.data.OperationType
+import com.anonymous.imgpdf.domain.operations.ImageConverter
+import com.anonymous.imgpdf.domain.operations.PageSize
+import com.anonymous.imgpdf.ui.components.*
+import com.anonymous.imgpdf.util.CropHelper
+import com.anonymous.imgpdf.util.FileOpener
+import com.anonymous.imgpdf.util.OutputFolderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

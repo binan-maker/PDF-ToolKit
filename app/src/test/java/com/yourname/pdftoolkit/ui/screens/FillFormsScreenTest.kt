@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.screens
+package com.anonymous.imgpdf.ui.screens
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

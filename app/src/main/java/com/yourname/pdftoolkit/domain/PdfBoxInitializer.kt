@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain
+package com.anonymous.imgpdf.domain
 
 import android.content.Context
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader

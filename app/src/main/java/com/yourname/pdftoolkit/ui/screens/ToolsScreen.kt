@@ -1,5 +1,5 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import android.content.Intent
 import android.net.Uri
@@ -31,10 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yourname.pdftoolkit.BuildConfig
-import com.yourname.pdftoolkit.R
-import com.yourname.pdftoolkit.data.SafUriManager
-import com.yourname.pdftoolkit.ui.navigation.Screen
+import com.anonymous.imgpdf.BuildConfig
+import com.anonymous.imgpdf.R
+import com.anonymous.imgpdf.data.SafUriManager
+import com.anonymous.imgpdf.ui.navigation.Screen
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -163,22 +163,20 @@ fun ToolsScreen(
         }
     }
 
-    val allTools = remember { getAllTools() }
+    val allTools = remember { getAllTools().filterNot { it.id == "view_pdf" } }
     val isDarkTheme = isSystemInDarkTheme()
     val homeColors = remember(isDarkTheme) { HomeColors.forTheme(isDarkTheme) }
     var selectedSection by remember { mutableStateOf<ToolSection?>(null) }
     var searchQuery by remember { mutableStateOf("") }
 
     fun openTool(tool: ToolItem) {
-        if (tool.screen == Screen.Home && tool.id == "view_pdf") {
-            pdfPickerLauncher.safeLaunch(arrayOf("application/pdf"), context)
+        if (tool.id == "view_pdf") return
+
+        val imageToolIds = listOf("image_compress", "image_resize", "image_convert", "image_metadata")
+        if (imageToolIds.contains(tool.id) && onNavigateToRoute != null) {
+            onNavigateToRoute(Screen.getRouteForToolId(tool.id))
         } else {
-            val imageToolIds = listOf("image_compress", "image_resize", "image_convert", "image_metadata")
-            if (imageToolIds.contains(tool.id) && onNavigateToRoute != null) {
-                onNavigateToRoute(Screen.getRouteForToolId(tool.id))
-            } else {
-                onNavigateToScreen(tool.screen)
-            }
+            onNavigateToScreen(tool.screen)
         }
     }
 
@@ -204,15 +202,6 @@ fun ToolsScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp),
             contentPadding = PaddingValues(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 40.dp)
         ) {
-            item {
-                HomeHero(
-                    colors = homeColors,
-                    onOpenPdf = {
-                        pdfPickerLauncher.safeLaunch(arrayOf("application/pdf"), context)
-                    }
-                )
-            }
-
             item {
                 ToolSearchField(
                     query = searchQuery,

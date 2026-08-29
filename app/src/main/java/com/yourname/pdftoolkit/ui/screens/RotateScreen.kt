@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,7 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
-import com.yourname.pdftoolkit.ui.components.PdfThumbnailGrid
+import com.anonymous.imgpdf.ui.components.PdfThumbnailGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,16 +22,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.data.HistoryManager
-import com.yourname.pdftoolkit.data.OperationType
-import com.yourname.pdftoolkit.data.PdfFileInfo
-import com.yourname.pdftoolkit.domain.operations.PdfRotator
-import com.yourname.pdftoolkit.domain.operations.PdfSplitter
-import com.yourname.pdftoolkit.domain.operations.RotationAngle
-import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.data.HistoryManager
+import com.anonymous.imgpdf.data.OperationType
+import com.anonymous.imgpdf.data.PdfFileInfo
+import com.anonymous.imgpdf.domain.operations.PdfRotator
+import com.anonymous.imgpdf.domain.operations.PdfSplitter
+import com.anonymous.imgpdf.domain.operations.RotationAngle
+import com.anonymous.imgpdf.ui.components.*
+import com.anonymous.imgpdf.util.FileOpener
+import com.anonymous.imgpdf.util.OutputFolderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -432,10 +432,10 @@ fun RotateScreen(
                                     .height(280.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                com.yourname.pdftoolkit.ui.components.PdfThumbnailCard(
+                                com.anonymous.imgpdf.ui.components.PdfThumbnailCard(
                                     uri = selectedFile!!.uri,
                                     pageNumber = 1,
-                                    organizer = remember { com.yourname.pdftoolkit.domain.operations.PdfOrganizer() },
+                                    organizer = remember { com.anonymous.imgpdf.domain.operations.PdfOrganizer() },
                                     isSelected = true,
                                     onClick = {},
                                     rotationDegrees = when (rotationAngle) {

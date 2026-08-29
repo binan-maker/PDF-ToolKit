@@ -32,7 +32,7 @@ APP_VERSION_NAME=1.3.210
 - **`.github/workflows/manage-releases.yml`**: Disabled `git push origin --delete "$TAG"` to preserve Git tags permanently.
 
 ### Metadata Alignments
-- **F-Droid Metadata ([`metadata/com.yourname.pdftoolkit.yml`](file:///c:/Users/chait/Projects/pdf_tools/metadata/com.yourname.pdftoolkit.yml)):** Added top-level `CurrentVersion: 1.3.210` and `CurrentVersionCode: 210`. Retained historical build recipe `1.3.175` and active recipe `1.3.210`.
+- **F-Droid Metadata ([`metadata/com.anonymous.imgpdf.yml`](file:///c:/Users/chait/Projects/pdf_tools/metadata/com.anonymous.imgpdf.yml)):** Added top-level `CurrentVersion: 1.3.210` and `CurrentVersionCode: 210`. Retained historical build recipe `1.3.175` and active recipe `1.3.210`.
 - **Fastlane Changelog ([`fastlane/metadata/android/en-US/changelogs/210.txt`](file:///c:/Users/chait/Projects/pdf_tools/fastlane/metadata/android/en-US/changelogs/210.txt)):** Created release notes for version code 210.
 - **Root Changelog ([`CHANGELOG.md`](file:///c:/Users/chait/Projects/pdf_tools/CHANGELOG.md)):** Created central release history for versions `1.3.210`, `1.3.175`, and `1.0.0`.
 

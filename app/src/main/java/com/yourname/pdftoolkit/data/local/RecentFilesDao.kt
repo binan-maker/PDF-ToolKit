@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.data.local
+package com.anonymous.imgpdf.data.local
 
 import androidx.room.Dao
 import androidx.room.Insert

@@ -1,8 +1,8 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,10 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.yourname.pdftoolkit.domain.operations.*
-import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
-import com.yourname.pdftoolkit.ui.components.ToolTopBar
-import com.yourname.pdftoolkit.util.FileOpener
+import com.anonymous.imgpdf.domain.operations.*
+import com.anonymous.imgpdf.ui.components.PdfToolHeroCard
+import com.anonymous.imgpdf.ui.components.ToolTopBar
+import com.anonymous.imgpdf.util.FileOpener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -131,7 +131,7 @@ class FillFormsViewModel : ViewModel() {
             )
 
             if (result.success) {
-                com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, outputUri)
+                com.anonymous.imgpdf.data.SafUriManager.addRecentFile(context, outputUri)
             }
 
             _state.value = _state.value.copy(

@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.util
+package com.anonymous.imgpdf.util
 
 import android.content.ActivityNotFoundException
 import android.content.Context

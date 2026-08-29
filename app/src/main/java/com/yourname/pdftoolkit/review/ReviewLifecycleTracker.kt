@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.review
+package com.anonymous.imgpdf.review
 
 import android.app.Activity
 import android.app.Application

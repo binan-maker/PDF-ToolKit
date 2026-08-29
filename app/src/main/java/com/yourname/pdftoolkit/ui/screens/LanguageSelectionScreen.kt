@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.screens
+package com.anonymous.imgpdf.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -18,8 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.R
-import com.yourname.pdftoolkit.util.LanguageManager
+import com.anonymous.imgpdf.R
+import com.anonymous.imgpdf.util.LanguageManager
 import kotlinx.coroutines.launch
 
 /**

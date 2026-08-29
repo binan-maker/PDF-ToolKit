@@ -1,9 +1,9 @@
-package com.yourname.pdftoolkit.pdfviewer
+package com.anonymous.imgpdf.pdfviewer
 
 import android.content.Context
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
-import com.yourname.pdftoolkit.util.PrintUtils
+import com.anonymous.imgpdf.util.PrintUtils
 import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith

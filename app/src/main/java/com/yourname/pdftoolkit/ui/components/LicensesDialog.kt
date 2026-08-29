@@ -1,7 +1,7 @@
-package com.yourname.pdftoolkit.ui.components
+package com.anonymous.imgpdf.ui.components
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.content.Intent
 import android.net.Uri

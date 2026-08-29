@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.components
+package com.anonymous.imgpdf.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn

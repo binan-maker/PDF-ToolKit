@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain.operations
+package com.anonymous.imgpdf.domain.operations
 
 object OcrDpiUtil {
     private const val DEFAULT_DPI = 200f

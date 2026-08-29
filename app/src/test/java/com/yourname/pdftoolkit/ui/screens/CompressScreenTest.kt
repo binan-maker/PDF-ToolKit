@@ -1,10 +1,10 @@
-package com.yourname.pdftoolkit.ui.screens
+package com.anonymous.imgpdf.ui.screens
 
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.test.core.app.ApplicationProvider
-import com.yourname.pdftoolkit.data.FileManager
+import com.anonymous.imgpdf.data.FileManager
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith

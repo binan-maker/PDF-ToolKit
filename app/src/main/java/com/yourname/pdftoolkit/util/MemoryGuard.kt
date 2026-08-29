@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.util
+package com.anonymous.imgpdf.util
 
 import java.io.IOException
 

@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.domain.operations
+package com.anonymous.imgpdf.domain.operations
 
 import com.tom_roush.pdfbox.pdmodel.interactive.form.PDField
 import org.junit.Assert.assertEquals

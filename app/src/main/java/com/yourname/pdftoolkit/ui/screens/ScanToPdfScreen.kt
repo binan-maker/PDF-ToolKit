@@ -1,7 +1,7 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import androidx.compose.ui.res.stringResource
 
@@ -46,10 +46,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
-import com.yourname.pdftoolkit.domain.operations.*
-import com.yourname.pdftoolkit.ui.components.PdfToolHeroCard
-import com.yourname.pdftoolkit.ui.components.ToolTopBar
-import com.yourname.pdftoolkit.util.CropHelper
+import com.anonymous.imgpdf.domain.operations.*
+import com.anonymous.imgpdf.ui.components.PdfToolHeroCard
+import com.anonymous.imgpdf.ui.components.ToolTopBar
+import com.anonymous.imgpdf.util.CropHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -138,12 +138,12 @@ class ScanToPdfViewModel : ViewModel() {
             )
 
             if (result.success) {
-                com.yourname.pdftoolkit.data.SafUriManager.addRecentFile(context, outputUri)
+                com.anonymous.imgpdf.data.SafUriManager.addRecentFile(context, outputUri)
 
                 // Record in history
-                com.yourname.pdftoolkit.data.HistoryManager.recordSuccess(
+                com.anonymous.imgpdf.data.HistoryManager.recordSuccess(
                     context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.SCAN_TO_PDF,
+                    operationType = com.anonymous.imgpdf.data.OperationType.SCAN_TO_PDF,
                     inputFileName = "${_state.value.selectedImages.size} images",
                     outputFileUri = outputUri,
                     outputFileName = "scanned.pdf",
@@ -151,9 +151,9 @@ class ScanToPdfViewModel : ViewModel() {
                 )
             } else {
                 // Record failure in history
-                com.yourname.pdftoolkit.data.HistoryManager.recordFailure(
+                com.anonymous.imgpdf.data.HistoryManager.recordFailure(
                     context = context,
-                    operationType = com.yourname.pdftoolkit.data.OperationType.SCAN_TO_PDF,
+                    operationType = com.anonymous.imgpdf.data.OperationType.SCAN_TO_PDF,
                     inputFileName = "${_state.value.selectedImages.size} images",
                     errorMessage = result.errorMessage
                 )
@@ -575,7 +575,7 @@ fun ScanToPdfScreen(
                     Button(
                         onClick = {
                             scope.launch(Dispatchers.IO) {
-                                com.yourname.pdftoolkit.util.FileOpener.openPdf(context, state.resultUri!!)
+                                com.anonymous.imgpdf.util.FileOpener.openPdf(context, state.resultUri!!)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()

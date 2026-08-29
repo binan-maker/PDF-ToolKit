@@ -1,7 +1,7 @@
-package com.yourname.pdftoolkit.ui.screens
+package com.anonymous.imgpdf.ui.screens
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.content.Intent
 import android.net.Uri
@@ -22,9 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.ui.components.ToolTopBar
-import com.yourname.pdftoolkit.util.FileOpener
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.ui.components.ToolTopBar
+import com.anonymous.imgpdf.util.FileOpener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File

@@ -8,12 +8,12 @@ plugins {
 }
 
 android {
-    namespace = "com.yourname.pdftoolkit"
+    namespace = "com.anonymous.imgpdf"
     compileSdk = 36
     ndkVersion = "28.0.12433510"
 
     defaultConfig {
-        applicationId = "com.yourname.pdftoolkit"
+        applicationId = "com.anonymous.imgpdf"
         minSdk = 26
         targetSdk = 36
         // Version code and name are read from gradle.properties for F-Droid compatibility

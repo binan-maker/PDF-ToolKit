@@ -30,7 +30,7 @@
 
 ## 3. F-Droid Build Recipe & Revision Verification
 
-Inspected: [`metadata/com.yourname.pdftoolkit.yml`](file:///c:/Users/chait/Projects/pdf_tools/metadata/com.yourname.pdftoolkit.yml)
+Inspected: [`metadata/com.anonymous.imgpdf.yml`](file:///c:/Users/chait/Projects/pdf_tools/metadata/com.anonymous.imgpdf.yml)
 
 - **`CurrentVersion`:** `1.3.210` (**VERIFIED**)
 - **`CurrentVersionCode`:** `210` (**VERIFIED**)

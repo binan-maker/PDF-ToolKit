@@ -1,7 +1,7 @@
-package com.yourname.pdftoolkit.ui.components
+package com.anonymous.imgpdf.ui.components
 
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -32,7 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.domain.operations.PdfOrganizer
+import com.anonymous.imgpdf.domain.operations.PdfOrganizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit

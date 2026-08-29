@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.data
+package com.anonymous.imgpdf.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -216,7 +216,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: play-store-key.json
-          packageName: com.yourname.pdftoolkit
+          packageName: com.anonymous.imgpdf
           releaseFiles: app/build/outputs/bundle/playstoreRelease/*.aab
           tracks: internal
           status: completed
@@ -240,7 +240,7 @@ jobs:
           
           # Create multipart form data request
           RESPONSE=$(curl -X POST \
-            "https://developer-api.indusappstore.com/devtools/aab/upgrade/com.yourname.pdftoolkit" \
+            "https://developer-api.indusappstore.com/devtools/aab/upgrade/com.anonymous.imgpdf" \
             -H "Authorization: ${{ secrets.INDUS_APP_STORE_KEY }}" \
             -F "file=@${AAB_FILE}" \
             -F "file=@${KEYSTORE_FILE}" \
@@ -380,7 +380,7 @@ jobs:
           echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **App** | Paperly |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Package** | com.yourname.pdftoolkit |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Package** | com.anonymous.imgpdf |" >> $GITHUB_STEP_SUMMARY
           echo "| **Track** | Internal Testing |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version Name** | ${{ env.APP_VERSION_NAME }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version Code** | ${{ env.APP_VERSION_CODE }} |" >> $GITHUB_STEP_SUMMARY

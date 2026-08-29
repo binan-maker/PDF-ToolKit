@@ -35,7 +35,7 @@ A repository-wide audit mapped **96 total activity launch sites** across the app
 Rather than duplicating try-catch blocks across 27 UI screen files, a centralized extension function abstraction was created in [`app/src/main/java/com/yourname/pdftoolkit/util/SafeLauncher.kt`](file:///c:/Users/chait/Projects/pdf_tools/app/src/main/java/com/yourname/pdftoolkit/util/SafeLauncher.kt):
 
 ```kotlin
-package com.yourname.pdftoolkit.util
+package com.anonymous.imgpdf.util
 
 import android.content.ActivityNotFoundException
 import android.content.Context

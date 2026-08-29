@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.navigation
+package com.anonymous.imgpdf.ui.navigation
 
 import android.content.Intent
 import android.net.Uri
@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,9 +32,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.yourname.pdftoolkit.BuildConfig
-import com.yourname.pdftoolkit.ui.screens.PdfViewerScreen
-import com.yourname.pdftoolkit.ui.screens.*
+import com.anonymous.imgpdf.BuildConfig
+import com.anonymous.imgpdf.ui.screens.PdfViewerScreen
+import com.anonymous.imgpdf.ui.screens.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

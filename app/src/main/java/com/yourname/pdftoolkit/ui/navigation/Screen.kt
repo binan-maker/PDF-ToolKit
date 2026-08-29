@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.ui.navigation
+package com.anonymous.imgpdf.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*

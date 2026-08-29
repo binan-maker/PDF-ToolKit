@@ -1,7 +1,7 @@
-package com.yourname.pdftoolkit.ui.screens
-import com.yourname.pdftoolkit.util.safeLaunch
+package com.anonymous.imgpdf.ui.screens
+import com.anonymous.imgpdf.util.safeLaunch
 
-import com.yourname.pdftoolkit.R
+import com.anonymous.imgpdf.R
 
 import androidx.compose.ui.res.stringResource
 
@@ -23,14 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yourname.pdftoolkit.data.FileManager
-import com.yourname.pdftoolkit.data.PdfFileInfo
-import com.yourname.pdftoolkit.domain.operations.EditableMetadata
-import com.yourname.pdftoolkit.domain.operations.PdfMetadata
-import com.yourname.pdftoolkit.domain.operations.PdfMetadataManager
-import com.yourname.pdftoolkit.ui.components.*
-import com.yourname.pdftoolkit.util.FileOpener
-import com.yourname.pdftoolkit.util.OutputFolderManager
+import com.anonymous.imgpdf.data.FileManager
+import com.anonymous.imgpdf.data.PdfFileInfo
+import com.anonymous.imgpdf.domain.operations.EditableMetadata
+import com.anonymous.imgpdf.domain.operations.PdfMetadata
+import com.anonymous.imgpdf.domain.operations.PdfMetadataManager
+import com.anonymous.imgpdf.ui.components.*
+import com.anonymous.imgpdf.util.FileOpener
+import com.anonymous.imgpdf.util.OutputFolderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

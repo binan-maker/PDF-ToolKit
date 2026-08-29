@@ -1,4 +1,4 @@
-package com.yourname.pdftoolkit.pdfviewer
+package com.anonymous.imgpdf.pdfviewer
 
 import org.junit.Test
 
